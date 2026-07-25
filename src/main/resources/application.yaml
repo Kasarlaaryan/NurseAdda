@@ -1,3 +1,31 @@
 spring:
   application:
-    name: NurseAdda
+    name: nurseadda
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/nurseadda
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: c3ByaW5nYm9vdC1udXJzZWFkZGEtand0LXNlY3JldC1rZXktZm9yLWhzbWFjLXNoYTUxMi1hbGdvcml0aG0tbWluaW11bS1zZWNyZXQtbGVuZ3Ro
+    expiration-ms: 86400000
