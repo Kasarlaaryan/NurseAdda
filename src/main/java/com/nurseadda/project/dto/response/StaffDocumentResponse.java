@@ -1,5 +1,6 @@
 package com.nurseadda.project.dto.response;
 
+import com.nurseadda.project.entity.DocumentType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,23 +12,17 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponse {
+public class StaffDocumentResponse {
 
     private Long id;
 
-    private String email;
+    private DocumentType documentType;
 
-    private String firstName;
+    private String fileName;
 
-    private String lastName;
+    private String contentType;
 
-    private String phone;
+    private Long fileSize;
 
-    private String role;
-
-    private boolean enabled;
-
-    private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
+    private LocalDateTime uploadedAt;
 }
