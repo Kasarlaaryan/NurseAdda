@@ -22,4 +22,10 @@ public class ErrorResponse {
 
     @Builder.Default
     private List<String> errors = null;
+
+    /** Number of login attempts remaining before the account is locked. */
+    private Integer remainingAttempts;
+
+    /** Seconds until a locked account is unlocked (only when locked). */
+    private Long lockoutSeconds;
 }

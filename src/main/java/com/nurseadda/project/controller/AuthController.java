@@ -1,14 +1,16 @@
 package com.nurseadda.project.controller;
 
+import com.nurseadda.project.dto.request.ClientRegisterRequest;
 import com.nurseadda.project.dto.request.LoginRequest;
 import com.nurseadda.project.dto.request.RefreshTokenRequest;
-import com.nurseadda.project.dto.request.RegisterRequest;
+import com.nurseadda.project.dto.request.StaffRegisterRequest;
 import com.nurseadda.project.dto.response.AuthResponse;
 import com.nurseadda.project.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +21,15 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = authService.register(request);
+    @PostMapping("/register/staff")
+    public ResponseEntity<AuthResponse> registerStaff(@Valid @RequestBody StaffRegisterRequest request) {
+        AuthResponse response = authService.registerStaff(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/register/client")
+    public ResponseEntity<AuthResponse> registerClient(@Valid @RequestBody ClientRegisterRequest request) {
+        AuthResponse response = authService.registerClient(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -39,5 +47,12 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<AuthResponse> me(Authentication authentication) {
         return ResponseEntity.ok(authService.getCurrentUser(authentication));
+    }
+
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PatchMapping("/users/{userId}/unlock")
+    public ResponseEntity<Void> unlockUser(@PathVariable Long userId) {
+        authService.unlockUser(userId);
+        return ResponseEntity.noContent().build();
     }
 }

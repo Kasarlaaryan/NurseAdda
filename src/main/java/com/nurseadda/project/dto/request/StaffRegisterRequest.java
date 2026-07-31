@@ -1,6 +1,5 @@
 package com.nurseadda.project.dto.request;
 
-import com.nurseadda.project.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -11,20 +10,22 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserRequest {
+public class StaffRegisterRequest {
+
+    @NotBlank(message = "Full name is required")
+    private String fullName;
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     private String email;
 
-    @Size(min = 6, message = "Password must be at least 6 characters")
-    private String password;
-
-    private String firstName;
-
-    private String lastName;
-
+    @NotBlank(message = "Phone number is required")
     private String phone;
 
-    private Role role;
+    @NotBlank(message = "Staff category is required")
+    private String staffCategory;
+
+    @NotBlank(message = "Password is required")
+    @Size(min = 6, message = "Password must be at least 6 characters")
+    private String password;
 }

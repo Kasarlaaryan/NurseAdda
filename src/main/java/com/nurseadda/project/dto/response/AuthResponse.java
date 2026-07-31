@@ -22,4 +22,10 @@ public class AuthResponse {
     private String firstName;
 
     private String lastName;
+
+    /** Only populated for ROLE_STAFF accounts. */
+    private String staffCategory;
+
+    /** Whether the staff profile has been approved by an admin (null for non-staff). */
+    private Boolean verified;
 }
