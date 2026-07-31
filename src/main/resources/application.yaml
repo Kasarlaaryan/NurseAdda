@@ -25,7 +25,8 @@ spring:
 server:
   port: 8080
 
-app:
-  jwt:
-    secret: c3ByaW5nYm9vdC1udXJzZWFkZGEtand0LXNlY3JldC1rZXktZm9yLWhzbWFjLXNoYTUxMi1hbGdvcml0aG0tbWluaW11bS1zZWNyZXQtbGVuZ3Ro
-    expiration-ms: 86400000
+jwt:
+  secret: c3ByaW5nYm9vdC1udXJzZWFkZGEtand0LXNlY3JldC1rZXktZm9yLWhzbWFjLXNoYTUxMi1hbGdvcml0aG0tbWluaW11bS1zZWNyZXQtbGVuZ3Ro
+  validity:
+    accessToken: 900000
+    refreshToken: 604800000

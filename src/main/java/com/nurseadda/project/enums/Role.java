@@ -1,4 +1,4 @@
-package com.nurseadda.project.entity;
+package com.nurseadda.project.enums;
 
 public enum Role {
     ROLE_SUPER_ADMIN,

@@ -1,31 +1,35 @@
 package com.nurseadda.project.service.impl;
 
+import com.nurseadda.project.common.exception.BadRequestException;
 import com.nurseadda.project.common.exception.DuplicateResourceException;
 import com.nurseadda.project.common.exception.ResourceNotFoundException;
-import com.nurseadda.project.config.JwtUtils;
-import com.nurseadda.project.dto.AuthResponse;
-import com.nurseadda.project.dto.LoginRequest;
-import com.nurseadda.project.dto.RegisterRequest;
-import com.nurseadda.project.entity.Role;
+import com.nurseadda.project.dto.request.LoginRequest;
+import com.nurseadda.project.dto.request.RegisterRequest;
+import com.nurseadda.project.dto.response.AuthResponse;
 import com.nurseadda.project.entity.User;
+import com.nurseadda.project.enums.Role;
 import com.nurseadda.project.repository.UserRepository;
+import com.nurseadda.project.security.JwtUtil;
 import com.nurseadda.project.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+    private static final Set<Role> SELF_REGISTRABLE_ROLES = Set.of(Role.ROLE_STAFF, Role.ROLE_CLIENT);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
-    private final JwtUtils jwtUtils;
+    private final JwtUtil jwtUtil;
 
     @Override
     public AuthResponse register(RegisterRequest request) {
@@ -37,33 +41,29 @@ public class AuthServiceImpl implements AuthService {
             throw new DuplicateResourceException("User", "phone", request.getPhone());
         }
 
-        User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .phone(request.getPhone())
-                .role(request.getRole() != null ? request.getRole() : Role.ROLE_STAFF)
-                .enabled(request.getRole() == Role.ROLE_CLIENT)
-                .build();
+        Role role = request.getRole() != null ? request.getRole() : Role.ROLE_STAFF;
+
+        if (!SELF_REGISTRABLE_ROLES.contains(role)) {
+            throw new BadRequestException(
+                    "Self-registration is only allowed for STAFF and CLIENT. "
+                            + "ADMIN and SUPER_ADMIN accounts must be created by a SUPER_ADMIN."
+            );
+        }
+
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setPhone(request.getPhone());
+        user.setRole(role);
+        user.setEnabled(role == Role.ROLE_CLIENT);
 
         userRepository.save(user);
 
-        UserDetails userDetails = org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPassword())
-                .authorities(user.getRole().name())
-                .build();
-
-        String token = jwtUtils.generateToken(userDetails);
-
-        return AuthResponse.builder()
-                .token(token)
-                .email(user.getEmail())
-                .role(user.getRole().name())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .build();
+        return toAuthResponse(user,
+                jwtUtil.generateAccessToken(user),
+                jwtUtil.generateRefreshToken(user));
     }
 
     @Override
@@ -75,14 +75,36 @@ public class AuthServiceImpl implements AuthService {
                 )
         );
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", request.getEmail()));
+        User user = (User) authentication.getPrincipal();
 
-        String token = jwtUtils.generateToken(userDetails);
+        return toAuthResponse(user,
+                jwtUtil.generateAccessToken(user),
+                jwtUtil.generateRefreshToken(user));
+    }
 
+    @Override
+    public AuthResponse refreshToken(String refreshToken) {
+        String email = jwtUtil.retriveEmailFromToken(refreshToken);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+
+        return toAuthResponse(user,
+                jwtUtil.generateAccessToken(user),
+                jwtUtil.generateRefreshToken(user));
+    }
+
+    @Override
+    public AuthResponse getCurrentUser(Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authentication.getName()));
+
+        return toAuthResponse(user, null, null);
+    }
+
+    private AuthResponse toAuthResponse(User user, String accessToken, String refreshToken) {
         return AuthResponse.builder()
-                .token(token)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .firstName(user.getFirstName())

@@ -47,10 +47,6 @@ Database
 
 - MySQL
 
-Documentation
-
-- Swagger
-
 DevOps
 
 - GitHub
