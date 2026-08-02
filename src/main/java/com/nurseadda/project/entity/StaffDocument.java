@@ -1,5 +1,6 @@
 package com.nurseadda.project.entity;
 
+import com.nurseadda.project.enums.StaffDocumentType;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -15,29 +16,21 @@ public class StaffDocument {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "staff_profile_id", nullable = false)
     private StaffProfile staffProfile;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "document_type", nullable = false)
-    private DocumentType documentType;
+    @Column(nullable = false, length = 40)
+    private StaffDocumentType documentType;
 
-    @Column(name = "file_name", nullable = false)
+    @Column(nullable = false)
     private String fileName;
 
-    @Column(name = "content_type")
-    private String contentType;
-
-    @Column(name = "file_size")
-    private Long fileSize;
-
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "file_data", nullable = false)
-    private byte[] fileData;
+    @Column(nullable = false)
+    private String filePath;
 
     @CreationTimestamp
-    @Column(name = "uploaded_at", updatable = false)
+    @Column(updatable = false)
     private LocalDateTime uploadedAt;
 }

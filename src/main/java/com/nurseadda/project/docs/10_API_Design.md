@@ -10,6 +10,29 @@ POST /api/auth/login
 
 POST /api/auth/logout
 
+## Email OTP verification
+
+Every newly registered account (staff or client) starts UNVERIFIED. The
+register endpoints auto-send a 6-digit OTP to the user's email and return
+no tokens (`accessToken`/`refreshToken` are null, `emailVerified` is
+false). The user must prove ownership of the email before the account is
+usable:
+
+POST /api/auth/otp/verify   (email, otp) -> marks emailVerified=true, returns
+                            fresh access + refresh tokens
+
+POST /api/auth/otp/resend   (email) -> generates a new OTP and emails it
+                            (use when the original expired or never arrived)
+
+Login is BLOCKED (401 "Please verify your email address using the OTP sent
+to you") until `emailVerified` is true. OTPs expire after 10 minutes
+(configurable via app.otp.expiry-minutes). The auth response includes an
+`emailVerified` field so the frontend can route unverified users to the
+OTP screen.
+
+Email delivery uses the Resend API (app.email.resend-api-key); if no key is
+configured the OTP is logged server-side for local development.
+
 Account lockout: after 5 consecutive failed login attempts an account is
 locked for 30 minutes (configurable via security.login.*). Locked accounts
 return 401 "Account is locked. Please contact an administrator".

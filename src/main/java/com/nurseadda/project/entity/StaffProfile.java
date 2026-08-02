@@ -1,11 +1,10 @@
 package com.nurseadda.project.entity;
 
+import com.nurseadda.project.enums.Qualification;
 import jakarta.persistence.*;
 import lombok.Data;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 @Entity
@@ -20,51 +19,25 @@ public class StaffProfile {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(name = "staff_category")
+    @Column(nullable = false, length = 100)
     private String staffCategory;
 
-    // ---- Professional & identification ----
-
-    @Column(name = "aadhar_number")
-    private String aadharNumber;
-
-    @Column(name = "nursing_council_reg_number")
-    private String nursingCouncilRegNumber;
-
-    @Column(name = "years_of_experience")
-    private Integer yearsOfExperience;
-
-    @Column(name = "specializations")
-    private String specializations;
-
-    // ---- Operational & logistics ----
-
-    @Column(name = "current_address")
-    private String currentAddress;
+    @Column(length = 12)
+    private String aadharCardNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "availability_status")
-    private AvailabilityStatus availabilityStatus = AvailabilityStatus.ACTIVE;
+    @Column(length = 30)
+    private Qualification qualification;
 
-    // ---- Bank details ----
+    @Column(length = 100)
+    private String licenseNumber;
 
-    @Column(name = "bank_account_number")
-    private String bankAccountNumber;
+    private LocalDate licenseExpiryDate;
 
-    @Column(name = "bank_name")
-    private String bankName;
+    private Integer yearsOfExperience;
 
-    @Column(name = "ifsc_code")
-    private String ifscCode;
+    @Column(length = 10)
+    private String panCardNumber;
 
-    @Column(nullable = false)
     private boolean verified = false;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }

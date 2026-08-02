@@ -22,50 +22,48 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 255)
     private String email;
 
     @Column(nullable = false)
     private String password;
 
-    @Column(name = "first_name")
     private String firstName;
 
-    @Column(name = "last_name")
     private String lastName;
 
-    @Column(unique = true)
+    @Column(length = 20)
     private String phone;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
+    @Column(nullable = false, length = 30)
+    private Role role = Role.ROLE_USER;
 
     @Column(nullable = false)
-    private boolean enabled = false;
+    private boolean enabled = true;
 
-    @Column(name = "failed_login_attempts", nullable = false)
+    @Column(nullable = false)
+    private boolean emailVerified = false;
+
     private int failedLoginAttempts = 0;
 
-    @Column(name = "locked_until")
     private LocalDateTime lockedUntil;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(this.role.name()));
+        return List.of(new SimpleGrantedAuthority(role.name()));
     }
 
     @Override
     public String getUsername() {
-        return this.email;
+        return email;
     }
 
     @Override

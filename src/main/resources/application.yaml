@@ -17,6 +17,11 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   servlet:
     multipart:
       max-file-size: 10MB
@@ -40,3 +45,13 @@ security:
   login:
     max-attempts: 5
     lock-duration-minutes: 30
+
+app:
+  otp:
+    length: 6
+    expiry-minutes: 10
+  email:
+    resend-api-key: ${RESEND_API_KEY:}
+    from: "NurseAdda <onboarding@resend.dev>"
+  upload:
+    dir: uploads
