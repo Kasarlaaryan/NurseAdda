@@ -2,8 +2,8 @@ package com.nurseadda.project.security;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.nurseadda.project.common.exception.JwtVerificationException;
 import com.nurseadda.project.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -19,12 +19,10 @@ import java.util.List;
 @Slf4j
 public class JwtUtil {
 
-    //first need to define the role, issueddate, token issuer;
     private static final String ROLE_TAG = "role";
-    private static final String ISSUED_DATE = "issued-date";
-    private static final String TOKEN_ISSUER = "nurseadda";
+    private static final String ISSUED_DATE_TAG = "issued-date";
+    private static final String TOKEN_ISSUER = "NurseAdda";
 
-    // calling the values of the token refersh token , and acess token and secrect key of the token;
     @Value("${jwt.validity.accessToken}")
     private Long ACCESS_TOKEN_VALIDITY_DURATION;
 
@@ -40,10 +38,8 @@ public class JwtUtil {
                 .withSubject(user.getEmail())
                 .withExpiresAt(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY_DURATION))
                 .withIssuer(TOKEN_ISSUER)
-                .withClaim(ISSUED_DATE, new Date())
                 .withClaim(ROLE_TAG, user.getAuthorities().stream().map(Object::toString).toList())
                 .sign(algorithm);
-
     }
 
     public String generateRefreshToken(User user) {
@@ -52,38 +48,31 @@ public class JwtUtil {
                 .withSubject(user.getEmail())
                 .withExpiresAt(new Date(System.currentTimeMillis() + REFRESH_TOKEN_VALIDITY_DURATION))
                 .withIssuer(TOKEN_ISSUER)
-                .withClaim(ISSUED_DATE, new Date())
+                .withClaim(ISSUED_DATE_TAG, new Date())
                 .withClaim(ROLE_TAG, user.getAuthorities().stream().map(Object::toString).toList())
                 .sign(algorithm);
-
     }
 
     public String retrieveTokenFromRequest(HttpServletRequest request) {
         String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            //Bearer token;
             return authorizationHeader.substring(7);
         }
         return null;
     }
 
-    public DecodedJWT getDecodedToken(String token) throws JwtVerificationException {
-        try {
-            Algorithm algorithm = Algorithm.HMAC256(SECRET.getBytes(StandardCharsets.UTF_8));
-            return JWT.require(algorithm).build().verify(token);
-        } catch (Exception e) {
-            log.error("JWT verification failed: {}", e.getMessage());
-            throw new JwtVerificationException("Invalid or expired JWT token", e);
-        }
+    private DecodedJWT getDecodedToken(String token) throws JWTVerificationException {
+        Algorithm algorithm = Algorithm.HMAC256(SECRET.getBytes(StandardCharsets.UTF_8));
+        return JWT.require(algorithm).build().verify(token);
     }
 
-    public String retriveEmailFromToken(String token) throws JwtVerificationException {
-        DecodedJWT decodedToken = getDecodedToken(token);
-        log.info("Decoded Jwt Token : {}", decodedToken);
-        return decodedToken.getSubject();
+    public String retrieveEmailFromToken(String token) throws JWTVerificationException {
+        log.info("Decoded JWT token: {}", getDecodedToken(token));
+        return getDecodedToken(token).getSubject();
     }
 
-    public List<String> retriveRolesFromToken(String token) throws JwtVerificationException {
+    public List<String> retrieveRolesFromToken(String token) throws JWTVerificationException {
         return getDecodedToken(token).getClaim(ROLE_TAG).asList(String.class);
     }
+
 }
