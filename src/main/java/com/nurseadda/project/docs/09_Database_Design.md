@@ -5,7 +5,6 @@
 - users
 - roles
 - staff_profiles
-- staff_documents
 - clients
 - organizations
 - branches
@@ -29,10 +28,6 @@ User
 ↓
 
 Staff Profile
-
-↓
-
-Staff Documents
 
 ↓
 

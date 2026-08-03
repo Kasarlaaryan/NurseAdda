@@ -1,0 +1,220 @@
+{
+  "v": 12,
+  "name": "NurseAdda API",
+  "description": "NurseAdda Auth & Staff APIs for Hoppscotch (https://hoppscotch.io).\n\nBASE URL: http://localhost:8080\n\nQUICK START:\n1. Send the 'Login' request -> copy the accessToken from the JSON response.\n2. Create an Environment in Hoppscotch with variable: accessToken = <the token>\n   (then headers written as 'Bearer <<accessToken>>' resolve automatically).\n\nOTP NOTE: no Resend API key is configured in local dev, so OTPs are printed in the app console log (line 'OTP for <email> : XXXXXX'). Copy that 6-digit code into the verify-otp request.\n\nACCOUNTS:\n- Admin: admin@nurseadda.com / admin123\n- Staff : anita.desai.e2e@test.com / staffpass456",
+  "folders": [],
+  "requests": [
+    {
+      "v": "17",
+      "id": "req_register_staff",
+      "name": "1. Register Staff",
+      "method": "POST",
+      "endpoint": "http://localhost:8080/api/auth/register-staff",
+      "params": [],
+      "headers": [{ "key": "Content-Type", "value": "application/json", "active": true }],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": {
+        "contentType": "application/json",
+        "body": "{\n  \"fullName\": \"Anita Desai\",\n  \"email\": \"anita.desai.e2e@test.com\",\n  \"phone\": \"9876512345\",\n  \"staffCategory\": \"OT Nurse\",\n  \"password\": \"staffpass456\"\n}"
+      },
+      "requestVariables": [],
+      "responses": {},
+      "description": "Sends a 6-digit OTP to the email (printed in the app console log in dev). Returns 200 'OTP sent to your email'."
+    },
+    {
+      "v": "17",
+      "id": "req_register_client",
+      "name": "2. Register Client",
+      "method": "POST",
+      "endpoint": "http://localhost:8080/api/auth/register-client",
+      "params": [],
+      "headers": [{ "key": "Content-Type", "value": "application/json", "active": true }],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": {
+        "contentType": "application/json",
+        "body": "{\n  \"firstName\": \"Riya\",\n  \"lastName\": \"Sharma\",\n  \"email\": \"riya.client@test.com\",\n  \"mobileNumber\": \"9876543210\",\n  \"password\": \"client123\",\n  \"confirmPassword\": \"client123\"\n}"
+      },
+      "requestVariables": [],
+      "responses": {},
+      "description": "Sends a 6-digit OTP to the email (printed in the app console log in dev)."
+    },
+    {
+      "v": "17",
+      "id": "req_send_otp",
+      "name": "3. Send / Resend OTP",
+      "method": "POST",
+      "endpoint": "http://localhost:8080/api/auth/send-otp",
+      "params": [],
+      "headers": [{ "key": "Content-Type", "value": "application/json", "active": true }],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": {
+        "contentType": "application/json",
+        "body": "{\n  \"email\": \"anita.desai.e2e@test.com\"\n}"
+      },
+      "requestVariables": [],
+      "responses": {},
+      "description": "Use if the OTP expired or was never received. New OTP goes to the app console log."
+    },
+    {
+      "v": "17",
+      "id": "req_verify_otp",
+      "name": "4. Verify OTP (completes registration)",
+      "method": "POST",
+      "endpoint": "http://localhost:8080/api/auth/verify-otp",
+      "params": [],
+      "headers": [{ "key": "Content-Type", "value": "application/json", "active": true }],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": {
+        "contentType": "application/json",
+        "body": "{\n  \"email\": \"anita.desai.e2e@test.com\",\n  \"otp\": \"123456\"\n}"
+      },
+      "requestVariables": [],
+      "responses": {},
+      "description": "Replace otp with the code from the app console log. On success creates the user + staff profile and returns access & refresh tokens."
+    },
+    {
+      "v": "17",
+      "id": "req_login",
+      "name": "5. Login",
+      "method": "POST",
+      "endpoint": "http://localhost:8080/api/auth/login",
+      "params": [],
+      "headers": [{ "key": "Content-Type", "value": "application/json", "active": true }],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": {
+        "contentType": "application/json",
+        "body": "{\n  \"email\": \"admin@nurseadda.com\",\n  \"password\": \"admin123\"\n}"
+      },
+      "requestVariables": [],
+      "responses": {},
+      "description": "Copy the returned accessToken into your Hoppscotch environment variable 'accessToken'.\nTry: ADMIN admin@nurseadda.com/admin123 | STAFF anita.desai.e2e@test.com/staffpass456"
+    },
+    {
+      "v": "17",
+      "id": "req_update_client_profile",
+      "name": "6. Update Client Profile (Bearer)",
+      "method": "PUT",
+      "endpoint": "http://localhost:8080/api/auth/client-profile",
+      "params": [],
+      "headers": [
+        { "key": "Content-Type", "value": "application/json", "active": true },
+        { "key": "Authorization", "value": "Bearer <<accessToken>>", "active": true }
+      ],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": {
+        "contentType": "application/json",
+        "body": "{\n  \"firstName\": \"Riya\",\n  \"lastName\": \"Sharma\",\n  \"mobileNumber\": \"9999999999\"\n}"
+      },
+      "requestVariables": [],
+      "responses": {},
+      "description": "Partial update - all fields optional. Requires a logged-in CLIENT token."
+    },
+    {
+      "v": "17",
+      "id": "req_update_staff_profile",
+      "name": "7. Update Staff Profile - multipart (Bearer)",
+      "method": "PUT",
+      "endpoint": "http://localhost:8080/api/auth/staff-profile",
+      "params": [],
+      "headers": [{ "key": "Authorization", "value": "Bearer <<accessToken>>", "active": true }],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": {
+        "contentType": "multipart/form-data",
+        "body": [
+          {
+            "key": "profile",
+            "active": true,
+            "isFile": false,
+            "value": "{\n  \"aadharCardNumber\": \"987654321098\",\n  \"licenseValidityDate\": \"2030-12-31\",\n  \"licenseRenewalDate\": \"2030-06-30\"\n}"
+          },
+          { "key": "stateBoardCertificate", "active": true, "isFile": true, "value": [] },
+          { "key": "educationalDocuments", "active": true, "isFile": true, "value": [] },
+          { "key": "educationalDocuments", "active": true, "isFile": true, "value": [] },
+          { "key": "photos", "active": true, "isFile": true, "value": [] },
+          { "key": "photos", "active": true, "isFile": true, "value": [] }
+        ]
+      },
+      "requestVariables": [],
+      "responses": {},
+      "description": "multipart/form-data parts:\n- 'profile' (required): JSON text: aadharCardNumber (12 digits), licenseValidityDate, licenseRenewalDate (all optional - partial update)\n- 'stateBoardCertificate' (optional, single file): replaces any previous one\n- 'educationalDocuments' (optional, multiple files): appended\n- 'photos' (optional, multiple files): appended\nNOTE: after import, click each file row in the form-data body and pick an actual file.\nRequires a logged-in STAFF token."
+    },
+    {
+      "v": "17",
+      "id": "req_get_staff_profile",
+      "name": "8. Get My Staff Profile (Bearer)",
+      "method": "GET",
+      "endpoint": "http://localhost:8080/api/auth/staff-profile",
+      "params": [],
+      "headers": [{ "key": "Authorization", "value": "Bearer <<accessToken>>", "active": true }],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": { "contentType": null, "body": null },
+      "requestVariables": [],
+      "responses": {},
+      "description": "Returns the authenticated staff member's profile incl. verified flag (green tick) and document paths."
+    },
+    {
+      "v": "17",
+      "id": "req_list_staff",
+      "name": "9. List All Staff - paginated (Bearer)",
+      "method": "GET",
+      "endpoint": "http://localhost:8080/api/auth/staff",
+      "params": [
+        { "key": "page", "value": "0", "active": true },
+        { "key": "size", "value": "10", "active": true }
+      ],
+      "headers": [{ "key": "Authorization", "value": "Bearer <<accessToken>>", "active": true }],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": { "contentType": null, "body": null },
+      "requestVariables": [],
+      "responses": {},
+      "description": "Admin only. Returns { content, totalElements, totalPages, number, size, ... }. size is capped at 100."
+    },
+    {
+      "v": "17",
+      "id": "req_verify_staff",
+      "name": "10. Verify / Reject Staff (Bearer)",
+      "method": "PATCH",
+      "endpoint": "http://localhost:8080/api/auth/staff/6/verification",
+      "params": [],
+      "headers": [
+        { "key": "Content-Type", "value": "application/json", "active": true },
+        { "key": "Authorization", "value": "Bearer <<accessToken>>", "active": true }
+      ],
+      "preRequestScript": "",
+      "testScript": "",
+      "auth": { "authType": "inherit", "authActive": true },
+      "body": {
+        "contentType": "application/json",
+        "body": "{\n  \"verified\": true\n}"
+      },
+      "requestVariables": [],
+      "responses": {},
+      "description": "Admin only. {userId} is the USER id (from login response or staff list).\n- verified: true  -> sends 'Profile Verified' email\n- verified: false -> sends 'Profile Not Verified' (rejection) email"
+    }
+  ],
+  "auth": { "authType": "inherit", "authActive": true },
+  "headers": [],
+  "variables": [
+    { "key": "accessToken", "initialValue": "", "currentValue": "", "secret": true }
+  ],
+  "preRequestScript": "",
+  "testScript": ""
+}

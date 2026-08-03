@@ -1,6 +1,5 @@
 package com.nurseadda.project.dto.response;
 
-import com.nurseadda.project.enums.Qualification;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,23 +16,27 @@ public class StaffProfileResponseDto {
 
     private Long id;
 
+    private String firstName;
+
+    private String lastName;
+
+    private String email;
+
+    private String phone;
+
     private String staffCategory;
 
     private String aadharCardNumber;
 
-    private Qualification qualification;
+    private LocalDate licenseValidityDate;
 
-    private String licenseNumber;
-
-    private LocalDate licenseExpiryDate;
-
-    private Integer yearsOfExperience;
-
-    private String panCardNumber;
+    private LocalDate licenseRenewalDate;
 
     private boolean verified;
 
-    private String passportPhotoPath;
+    private String stateBoardCertificatePath;
 
     private List<String> educationalDocumentPaths;
+
+    private List<String> photoPaths;
 }
