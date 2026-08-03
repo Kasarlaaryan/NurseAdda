@@ -1,11 +1,12 @@
 package com.nurseadda.project.controller;
 
+import com.nurseadda.project.dto.request.ClientProfileRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
 import com.nurseadda.project.dto.request.LoginRequest;
 import com.nurseadda.project.dto.request.SendOtpRequest;
 import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
-import com.nurseadda.project.dto.request.UpdateProfileRequest;
+import com.nurseadda.project.dto.request.StaffVerificationRequest;
 import com.nurseadda.project.dto.request.VerifyOtpRequest;
 import com.nurseadda.project.dto.response.AuthResponseDto;
 import com.nurseadda.project.dto.response.StaffProfileResponseDto;
@@ -13,6 +14,8 @@ import com.nurseadda.project.dto.response.UserResponseDto;
 import com.nurseadda.project.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -59,13 +62,13 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/profile")
-    public ResponseEntity<UserResponseDto> updateProfile(
+    @PutMapping("/client-profile")
+    public ResponseEntity<UserResponseDto> updateClientProfile(
             Authentication authentication,
-            @Valid @RequestBody UpdateProfileRequest updateProfileRequest
+            @Valid @RequestBody ClientProfileRequest clientProfileRequest
     ) {
         String email = (String) authentication.getPrincipal();
-        UserResponseDto response = authService.updateProfile(email, updateProfileRequest);
+        UserResponseDto response = authService.updateClientProfile(email, clientProfileRequest);
         return ResponseEntity.ok(response);
     }
 
@@ -73,12 +76,47 @@ public class AuthController {
     public ResponseEntity<StaffProfileResponseDto> updateStaffProfile(
             Authentication authentication,
             @Valid @RequestPart("profile") StaffProfileRequest staffProfileRequest,
-            @RequestPart(value = "passportPhoto", required = false) MultipartFile passportPhoto,
-            @RequestPart(value = "educationalDocuments", required = false) List<MultipartFile> educationalDocuments
+            @RequestPart(value = "stateBoardCertificate", required = false) MultipartFile stateBoardCertificate,
+            @RequestPart(value = "educationalDocuments", required = false) List<MultipartFile> educationalDocuments,
+            @RequestPart(value = "photos", required = false) List<MultipartFile> photos
     ) {
         String email = (String) authentication.getPrincipal();
         StaffProfileResponseDto response = authService.updateStaffProfile(
-                email, staffProfileRequest, passportPhoto, educationalDocuments);
+                email, staffProfileRequest, stateBoardCertificate, educationalDocuments, photos);
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/staff/{userId}/verification")
+    public ResponseEntity<StaffProfileResponseDto> verifyStaffProfile(
+            @PathVariable Long userId,
+            @Valid @RequestBody StaffVerificationRequest verificationRequest
+    ) {
+        StaffProfileResponseDto response = authService.verifyStaffProfile(
+                userId, verificationRequest.getVerified());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/staff-profile")
+    public ResponseEntity<StaffProfileResponseDto> getStaffProfile(Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(authService.getStaffProfile(email));
+    }
+
+    @GetMapping("/staff")
+    public ResponseEntity<Page<StaffProfileResponseDto>> getAllStaffProfiles(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (page < 0) {
+            page = 0;
+        }
+        if (size < 1) {
+            size = 10;
+        }
+        if (size > 100) {
+            size = 100;
+        }
+        return ResponseEntity.ok(authService.getAllStaffProfiles(PageRequest.of(page, size)));
+    }
+
 }

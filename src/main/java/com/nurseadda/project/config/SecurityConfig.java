@@ -31,6 +31,7 @@ public class SecurityConfig {
                                 "/api/auth/verify-otp",
                                 "/uploads/**"
                         ).permitAll()
+                        .requestMatchers("/api/auth/staff", "/api/auth/staff/*/verification").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

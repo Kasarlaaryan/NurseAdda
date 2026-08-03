@@ -1,6 +1,5 @@
 package com.nurseadda.project.entity;
 
-import com.nurseadda.project.enums.Qualification;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -25,19 +24,9 @@ public class StaffProfile {
     @Column(length = 12)
     private String aadharCardNumber;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 30)
-    private Qualification qualification;
+    private LocalDate licenseValidityDate;
 
-    @Column(length = 100)
-    private String licenseNumber;
-
-    private LocalDate licenseExpiryDate;
-
-    private Integer yearsOfExperience;
-
-    @Column(length = 10)
-    private String panCardNumber;
+    private LocalDate licenseRenewalDate;
 
     private boolean verified = false;
 }
