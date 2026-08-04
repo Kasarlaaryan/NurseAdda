@@ -301,6 +301,67 @@ class AuthServiceImplTest {
     //  verifyOtp — quick sanity that registration + verification are linked
     // =====================================================================
 
+    // =====================================================================
+    //  updateStaffProfile — document lock for verified profiles
+    // =====================================================================
+
+    @Test
+    @DisplayName("updateStaffProfile: verified profile cannot upload documents")
+    void updateStaffProfile_verifiedProfile_blocksDocumentUploads() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setStaffCategory("ICU Nurse");
+        staffProfile.setVerified(true);
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+
+        org.springframework.web.multipart.MultipartFile photo = Mockito.mock(
+                org.springframework.web.multipart.MultipartFile.class);
+        when(photo.isEmpty()).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.updateStaffProfile(
+                "rohan@test.com", new StaffProfileRequest(), photo, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("verified");
+
+        verify(staffDocumentRepository, never()).save(any());
+        verify(staffProfileRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("updateStaffProfile: verified profile can still update fields without files")
+    void updateStaffProfile_verifiedProfile_allowsFieldUpdatesWithoutFiles() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setStaffCategory("ICU Nurse");
+        staffProfile.setVerified(true);
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+        when(staffProfileRepository.save(staffProfile)).thenReturn(staffProfile);
+        when(staffDocumentRepository.findByStaffProfileId(10L)).thenReturn(java.util.List.of());
+
+        authService.updateStaffProfile("rohan@test.com",
+                new StaffProfileRequest("123456789012", null, null), null, null, null);
+
+        assertThat(staffProfile.getAadharCardNumber()).isEqualTo("123456789012");
+        verify(staffProfileRepository).save(staffProfile);
+        verify(staffDocumentRepository, never()).save(any());
+    }
+
     @Test
     @DisplayName("verifyOtp: creates the user only after a valid OTP")
     void verifyOtp_validOtp_createsUser() {
