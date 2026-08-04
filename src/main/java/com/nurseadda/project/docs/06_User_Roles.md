@@ -40,14 +40,11 @@ Permissions
 Responsibilities
 
 - Register
-- Update profile
-- Upload documents
 - Manage availability
 - Accept assignments
 
 Permissions
 
-- Manage own profile
 - View assignments
 - View attendance
 

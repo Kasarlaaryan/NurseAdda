@@ -6,12 +6,12 @@ import com.nurseadda.project.common.exception.OtpExpiredException;
 import com.nurseadda.project.common.exception.ResourceNotFoundException;
 import com.nurseadda.project.common.exception.UserAlreadyExistException;
 import com.nurseadda.project.common.exception.UserNotFoundException;
+import com.nurseadda.project.dto.request.ClientProfileRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
 import com.nurseadda.project.dto.request.LoginRequest;
 import com.nurseadda.project.dto.request.SendOtpRequest;
 import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
-import com.nurseadda.project.dto.request.UpdateProfileRequest;
 import com.nurseadda.project.dto.request.VerifyOtpRequest;
 import com.nurseadda.project.dto.response.AuthResponseDto;
 import com.nurseadda.project.dto.response.StaffProfileResponseDto;
@@ -35,6 +35,8 @@ import com.nurseadda.project.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,7 +49,9 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -119,7 +123,9 @@ public class AuthServiceImpl implements AuthService {
         PendingRegistration pending = PendingRegistration.builder()
                 .email(clientRegisterRequest.getEmail())
                 .password(passwordEncoder.encode(clientRegisterRequest.getPassword()))
-                .phone(clientRegisterRequest.getPhone())
+                .firstName(clientRegisterRequest.getFirstName())
+                .lastName(clientRegisterRequest.getLastName())
+                .phone(clientRegisterRequest.getMobileNumber())
                 .role(Role.ROLE_USER.name())
                 .code(code)
                 .expiresAt(LocalDateTime.now().plusMinutes(otpExpiryMinutes))
@@ -224,25 +230,25 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public UserResponseDto updateProfile(String email, UpdateProfileRequest updateProfileRequest) throws UserNotFoundException {
+    public UserResponseDto updateClientProfile(String email, ClientProfileRequest clientProfileRequest) throws UserNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(
                         "User not found with email : " + email
                 ));
 
-        if (updateProfileRequest.getFirstName() != null
-                && !updateProfileRequest.getFirstName().isBlank()) {
-            user.setFirstName(updateProfileRequest.getFirstName());
+        if (clientProfileRequest.getFirstName() != null
+                && !clientProfileRequest.getFirstName().isBlank()) {
+            user.setFirstName(clientProfileRequest.getFirstName());
         }
 
-        if (updateProfileRequest.getLastName() != null
-                && !updateProfileRequest.getLastName().isBlank()) {
-            user.setLastName(updateProfileRequest.getLastName());
+        if (clientProfileRequest.getLastName() != null
+                && !clientProfileRequest.getLastName().isBlank()) {
+            user.setLastName(clientProfileRequest.getLastName());
         }
 
-        if (updateProfileRequest.getPhone() != null
-                && !updateProfileRequest.getPhone().isBlank()) {
-            user.setPhone(updateProfileRequest.getPhone());
+        if (clientProfileRequest.getMobileNumber() != null
+                && !clientProfileRequest.getMobileNumber().isBlank()) {
+            user.setPhone(clientProfileRequest.getMobileNumber());
         }
 
         User updatedUser = userRepository.save(user);
@@ -254,8 +260,9 @@ public class AuthServiceImpl implements AuthService {
     public StaffProfileResponseDto updateStaffProfile(
             String email,
             StaffProfileRequest staffProfileRequest,
-            MultipartFile passportPhoto,
-            List<MultipartFile> educationalDocuments
+            MultipartFile stateBoardCertificate,
+            List<MultipartFile> educationalDocuments,
+            List<MultipartFile> photos
     ) throws UserNotFoundException, ResourceNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(
@@ -269,7 +276,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Once verified, documents can only be changed with administrator
         // approval, never directly through this profile-update endpoint.
-        if (staffProfile.isVerified() && hasDocumentFiles(passportPhoto, educationalDocuments)) {
+        if (staffProfile.isVerified() && hasDocumentFiles(stateBoardCertificate, educationalDocuments, photos)) {
             throw new IllegalArgumentException(
                     "Your profile is verified. Documents can only be changed when "
                             + "the administrator requests a replacement."
@@ -281,35 +288,21 @@ public class AuthServiceImpl implements AuthService {
             staffProfile.setAadharCardNumber(staffProfileRequest.getAadharCardNumber());
         }
 
-        if (staffProfileRequest.getQualification() != null) {
-            staffProfile.setQualification(staffProfileRequest.getQualification());
+        if (staffProfileRequest.getLicenseValidityDate() != null) {
+            staffProfile.setLicenseValidityDate(staffProfileRequest.getLicenseValidityDate());
         }
 
-        if (staffProfileRequest.getLicenseNumber() != null
-                && !staffProfileRequest.getLicenseNumber().isBlank()) {
-            staffProfile.setLicenseNumber(staffProfileRequest.getLicenseNumber());
+        if (staffProfileRequest.getLicenseRenewalDate() != null) {
+            staffProfile.setLicenseRenewalDate(staffProfileRequest.getLicenseRenewalDate());
         }
 
-        if (staffProfileRequest.getLicenseExpiryDate() != null) {
-            staffProfile.setLicenseExpiryDate(staffProfileRequest.getLicenseExpiryDate());
-        }
-
-        if (staffProfileRequest.getYearsOfExperience() != null) {
-            staffProfile.setYearsOfExperience(staffProfileRequest.getYearsOfExperience());
-        }
-
-        if (staffProfileRequest.getPanCardNumber() != null
-                && !staffProfileRequest.getPanCardNumber().isBlank()) {
-            staffProfile.setPanCardNumber(staffProfileRequest.getPanCardNumber());
-        }
-
-        // Passport photo: replace any existing passport photo
-        if (passportPhoto != null && !passportPhoto.isEmpty()) {
+        // State board certificate: replace any existing one
+        if (stateBoardCertificate != null && !stateBoardCertificate.isEmpty()) {
             staffDocumentRepository.deleteByStaffProfileIdAndDocumentType(
-                    staffProfile.getId(), StaffDocumentType.PASSPORT_PHOTO);
-            String photoPath = storeFile(passportPhoto, user.getId(), "passport");
-            saveDocument(staffProfile, StaffDocumentType.PASSPORT_PHOTO,
-                    safeFileName(passportPhoto, photoPath), photoPath);
+                    staffProfile.getId(), StaffDocumentType.STATE_BOARD_CERTIFICATE);
+            String certPath = storeFile(stateBoardCertificate, user.getId(), "certificate");
+            saveDocument(staffProfile, StaffDocumentType.STATE_BOARD_CERTIFICATE,
+                    safeFileName(stateBoardCertificate, certPath), certPath);
         }
 
         // Educational documents: append to existing certificates
@@ -323,15 +316,28 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
+        // Photos: append to existing photos
+        if (photos != null) {
+            for (MultipartFile photo : photos) {
+                if (photo != null && !photo.isEmpty()) {
+                    String path = storeFile(photo, user.getId(), "photos");
+                    saveDocument(staffProfile, StaffDocumentType.PHOTO,
+                            safeFileName(photo, path), path);
+                }
+            }
+        }
+
         staffProfileRepository.save(staffProfile);
 
         return buildStaffProfileResponse(staffProfile);
     }
 
-    private boolean hasDocumentFiles(MultipartFile passportPhoto,
-                                     List<MultipartFile> educationalDocuments) {
-        return (passportPhoto != null && !passportPhoto.isEmpty())
-                || hasNonEmptyFile(educationalDocuments);
+    private boolean hasDocumentFiles(MultipartFile stateBoardCertificate,
+                                     List<MultipartFile> educationalDocuments,
+                                     List<MultipartFile> photos) {
+        return (stateBoardCertificate != null && !stateBoardCertificate.isEmpty())
+                || hasNonEmptyFile(educationalDocuments)
+                || hasNonEmptyFile(photos);
     }
 
     private boolean hasNonEmptyFile(List<MultipartFile> files) {
@@ -339,6 +345,65 @@ public class AuthServiceImpl implements AuthService {
             return false;
         }
         return files.stream().anyMatch(file -> file != null && !file.isEmpty());
+    }
+
+    @Override
+    @Transactional
+    public StaffProfileResponseDto verifyStaffProfile(Long userId, boolean verified) throws ResourceNotFoundException {
+        StaffProfile staffProfile = staffProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Staff profile not found for user id : " + userId
+                ));
+
+        staffProfile.setVerified(verified);
+        staffProfileRepository.save(staffProfile);
+
+        User staffUser = staffProfile.getUser();
+        if (verified) {
+            emailService.sendProfileVerifiedEmail(staffUser.getEmail(), staffUser.getFirstName());
+        } else {
+            emailService.sendProfileRejectedEmail(staffUser.getEmail(), staffUser.getFirstName());
+        }
+
+        return buildStaffProfileResponse(staffProfile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StaffProfileResponseDto getStaffProfile(String email) throws UserNotFoundException, ResourceNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "User not found with email : " + email
+                ));
+
+        StaffProfile staffProfile = staffProfileRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Staff profile not found for user : " + email
+                ));
+
+        return buildStaffProfileResponse(staffProfile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<StaffProfileResponseDto> getAllStaffProfiles(Pageable pageable) {
+        Page<StaffProfile> profilePage = staffProfileRepository.findAll(pageable);
+
+        List<Long> profileIds = profilePage.getContent().stream()
+                .map(StaffProfile::getId)
+                .toList();
+
+        // Batch load documents for all profiles on this page in ONE IN query
+        // (instead of N queries via buildStaffProfileResponse).
+        Map<Long, List<StaffDocument>> documentsByProfile = profileIds.isEmpty()
+                ? Map.of()
+                : staffDocumentRepository.findByStaffProfileIdIn(profileIds).stream()
+                        .collect(Collectors.groupingBy(d -> d.getStaffProfile().getId()));
+
+        return profilePage.map(profile -> buildStaffProfileResponse(
+                profile,
+                documentsByProfile.getOrDefault(profile.getId(), List.of())
+        ));
     }
 
     private String storeFile(MultipartFile file, Long userId, String folder) {
@@ -349,7 +414,11 @@ public class AuthServiceImpl implements AuthService {
             String originalName = file.getOriginalFilename();
             String extension = "";
             if (originalName != null && originalName.contains(".")) {
-                extension = originalName.substring(originalName.lastIndexOf('.'));
+                String rawExtension = originalName.substring(originalName.lastIndexOf('.') + 1);
+                // Only keep a safe alphanumeric extension to prevent path traversal
+                if (rawExtension.matches("[A-Za-z0-9]{1,10}")) {
+                    extension = "." + rawExtension;
+                }
             }
 
             String storedName = UUID.randomUUID() + extension;
@@ -380,9 +449,13 @@ public class AuthServiceImpl implements AuthService {
 
     private StaffProfileResponseDto buildStaffProfileResponse(StaffProfile staffProfile) {
         List<StaffDocument> documents = staffDocumentRepository.findByStaffProfileId(staffProfile.getId());
+        return buildStaffProfileResponse(staffProfile, documents);
+    }
 
-        String passportPhotoPath = documents.stream()
-                .filter(d -> d.getDocumentType() == StaffDocumentType.PASSPORT_PHOTO)
+    private StaffProfileResponseDto buildStaffProfileResponse(StaffProfile staffProfile,
+                                                              List<StaffDocument> documents) {
+        String stateBoardCertificatePath = documents.stream()
+                .filter(d -> d.getDocumentType() == StaffDocumentType.STATE_BOARD_CERTIFICATE)
                 .map(StaffDocument::getFilePath)
                 .findFirst()
                 .orElse(null);
@@ -392,18 +465,25 @@ public class AuthServiceImpl implements AuthService {
                 .map(StaffDocument::getFilePath)
                 .toList();
 
+        List<String> photoPaths = documents.stream()
+                .filter(d -> d.getDocumentType() == StaffDocumentType.PHOTO)
+                .map(StaffDocument::getFilePath)
+                .toList();
+
         return StaffProfileResponseDto.builder()
                 .id(staffProfile.getId())
+                .firstName(staffProfile.getUser().getFirstName())
+                .lastName(staffProfile.getUser().getLastName())
+                .email(staffProfile.getUser().getEmail())
+                .phone(staffProfile.getUser().getPhone())
                 .staffCategory(staffProfile.getStaffCategory())
                 .aadharCardNumber(staffProfile.getAadharCardNumber())
-                .qualification(staffProfile.getQualification())
-                .licenseNumber(staffProfile.getLicenseNumber())
-                .licenseExpiryDate(staffProfile.getLicenseExpiryDate())
-                .yearsOfExperience(staffProfile.getYearsOfExperience())
-                .panCardNumber(staffProfile.getPanCardNumber())
+                .licenseValidityDate(staffProfile.getLicenseValidityDate())
+                .licenseRenewalDate(staffProfile.getLicenseRenewalDate())
                 .verified(staffProfile.isVerified())
-                .passportPhotoPath(passportPhotoPath)
+                .stateBoardCertificatePath(stateBoardCertificatePath)
                 .educationalDocumentPaths(educationalDocumentPaths)
+                .photoPaths(photoPaths)
                 .build();
     }
 

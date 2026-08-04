@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateProfileRequest {
+public class ClientProfileRequest {
 
     @Size(max = 100, message = "First name must not exceed 100 characters")
     private String firstName;
@@ -19,7 +19,7 @@ public class UpdateProfileRequest {
 
     @Pattern(
             regexp = "^\\+?[0-9]{10,15}$",
-            message = "Phone number must be 10-15 digits, optionally starting with +"
+            message = "Mobile number must be 10-15 digits, optionally starting with +"
     )
-    private String phone;
+    private String mobileNumber;
 }

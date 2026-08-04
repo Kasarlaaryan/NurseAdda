@@ -1,14 +1,21 @@
 package com.nurseadda.project.service.impl;
 
 import com.nurseadda.project.common.exception.InvalidOtpException;
+import com.nurseadda.project.common.exception.ResourceNotFoundException;
 import com.nurseadda.project.common.exception.UserAlreadyExistException;
+import com.nurseadda.project.common.exception.UserNotFoundException;
+import com.nurseadda.project.dto.request.ClientProfileRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
 import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
 import com.nurseadda.project.dto.request.VerifyOtpRequest;
+import com.nurseadda.project.dto.response.StaffProfileResponseDto;
+import com.nurseadda.project.dto.response.UserResponseDto;
+import com.nurseadda.project.enums.Role;
+import com.nurseadda.project.entity.StaffDocument;
 import com.nurseadda.project.entity.StaffProfile;
 import com.nurseadda.project.entity.User;
-import com.nurseadda.project.enums.Role;
+import com.nurseadda.project.enums.StaffDocumentType;
 import com.nurseadda.project.model.PendingRegistration;
 import com.nurseadda.project.repository.ClientRepository;
 import com.nurseadda.project.repository.PendingRegistrationRepository;
@@ -22,24 +29,32 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
-import org.mockito.Mockito;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -202,7 +217,7 @@ class AuthServiceImplTest {
     @DisplayName("registerClient: valid request returns OTP message")
     void registerClient_validRequest_returnsOtpMessage() throws UserAlreadyExistException {
         ClientRegisterRequest request = new ClientRegisterRequest(
-                "client@test.com", "9876543210", "secret123"
+                "Client", "User", "client@test.com", "9876543210", "secret123", "secret123"
         );
 
         when(userService.existsByEmail("client@test.com")).thenReturn(false);
@@ -216,7 +231,7 @@ class AuthServiceImplTest {
     @DisplayName("registerClient: saves pending registration with user role")
     void registerClient_validRequest_savesPendingRegistration() throws UserAlreadyExistException {
         ClientRegisterRequest request = new ClientRegisterRequest(
-                "client@test.com", "9876543210", "secret123"
+                "Client", "User", "client@test.com", "9876543210", "secret123", "secret123"
         );
 
         when(userService.existsByEmail("client@test.com")).thenReturn(false);
@@ -232,8 +247,8 @@ class AuthServiceImplTest {
         assertThat(pending.getPassword()).isEqualTo("$2a$10$encodedHash");
         assertThat(pending.getPhone()).isEqualTo("9876543210");
         assertThat(pending.getRole()).isEqualTo(Role.ROLE_USER.name());
-        assertThat(pending.getFirstName()).isNull();
-        assertThat(pending.getLastName()).isNull();
+        assertThat(pending.getFirstName()).isEqualTo("Client");
+        assertThat(pending.getLastName()).isEqualTo("User");
         assertThat(pending.getStaffCategory()).isNull();
         assertThat(pending.isVerified()).isFalse();
         assertThat(pending.getCode()).matches("^[0-9]{6}$");
@@ -246,7 +261,7 @@ class AuthServiceImplTest {
     @DisplayName("registerClient: sends the generated OTP to the given email")
     void registerClient_validRequest_sendsOtpEmail() throws UserAlreadyExistException {
         ClientRegisterRequest request = new ClientRegisterRequest(
-                "client@test.com", "9876543210", "secret123"
+                "Client", "User", "client@test.com", "9876543210", "secret123", "secret123"
         );
 
         when(userService.existsByEmail("client@test.com")).thenReturn(false);
@@ -269,7 +284,7 @@ class AuthServiceImplTest {
     @DisplayName("registerClient: duplicate email throws UserAlreadyExistException")
     void registerClient_duplicateEmail_throwsUserAlreadyExist() {
         ClientRegisterRequest request = new ClientRegisterRequest(
-                "client@test.com", "9876543210", "secret123"
+                "Client", "User", "client@test.com", "9876543210", "secret123", "secret123"
         );
 
         when(userService.existsByEmail("client@test.com")).thenReturn(true);
@@ -312,7 +327,7 @@ class AuthServiceImplTest {
         when(photo.isEmpty()).thenReturn(false);
 
         assertThatThrownBy(() -> authService.updateStaffProfile(
-                "rohan@test.com", new StaffProfileRequest(), photo, null))
+                "rohan@test.com", new StaffProfileRequest(), photo, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("verified");
 
@@ -340,7 +355,7 @@ class AuthServiceImplTest {
         when(staffDocumentRepository.findByStaffProfileId(10L)).thenReturn(java.util.List.of());
 
         authService.updateStaffProfile("rohan@test.com",
-                new StaffProfileRequest("123456789012", null, null, null, null, null), null, null);
+                new StaffProfileRequest("123456789012", null, null), null, null, null);
 
         assertThat(staffProfile.getAadharCardNumber()).isEqualTo("123456789012");
         verify(staffProfileRepository).save(staffProfile);
@@ -363,5 +378,392 @@ class AuthServiceImplTest {
         verify(staffProfileRepository, never()).save(any());
         verify(clientRepository, never()).save(any());
         verify(jwtUtil, never()).generateAccessToken(any());
+    }
+
+    // =====================================================================
+    //  updateClientProfile
+    // =====================================================================
+
+    @Test
+    @DisplayName("updateClientProfile: updates firstName, lastName and phone")
+    void updateClientProfile_validRequest_updatesUser() {
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("riya@test.com");
+        user.setFirstName("Old");
+        user.setLastName("Name");
+        user.setPhone("9876543210");
+        user.setRole(Role.ROLE_USER);
+
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        UserResponseDto dto = UserResponseDto.builder()
+                .id(1L)
+                .email("riya@test.com")
+                .firstName("Riya")
+                .lastName("Sharma")
+                .phone("9999999999")
+                .role(Role.ROLE_USER)
+                .build();
+        when(modelMapper.map(user, UserResponseDto.class)).thenReturn(dto);
+
+        UserResponseDto result = authService.updateClientProfile("riya@test.com",
+                new ClientProfileRequest("Riya", "Sharma", "9999999999"));
+
+        assertThat(result).isSameAs(dto);
+        assertThat(user.getFirstName()).isEqualTo("Riya");
+        assertThat(user.getLastName()).isEqualTo("Sharma");
+        assertThat(user.getPhone()).isEqualTo("9999999999");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("updateClientProfile: blank fields are skipped (partial update)")
+    void updateClientProfile_partialUpdate_keepsExistingValues() {
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("riya@test.com");
+        user.setFirstName("Riya");
+        user.setLastName("Sharma");
+        user.setPhone("9876543210");
+        user.setRole(Role.ROLE_USER);
+
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        authService.updateClientProfile("riya@test.com",
+                new ClientProfileRequest(null, null, "9999999999"));
+
+        assertThat(user.getFirstName()).isEqualTo("Riya");
+        assertThat(user.getLastName()).isEqualTo("Sharma");
+        assertThat(user.getPhone()).isEqualTo("9999999999");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("updateClientProfile: user not found throws UserNotFoundException")
+    void updateClientProfile_userNotFound_throws() {
+        when(userRepository.findByEmail("nobody@test.com")).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> authService.updateClientProfile("nobody@test.com",
+                new ClientProfileRequest("Riya", "Sharma", "9876543210")))
+                .isInstanceOf(UserNotFoundException.class)
+                .hasMessageContaining("nobody@test.com");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    // =====================================================================
+    //  updateStaffProfile
+    // =====================================================================
+
+    @Test
+    @DisplayName("updateStaffProfile: updates aadhar card and license dates")
+    void updateStaffProfile_validRequest_updatesProfileFields() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setStaffCategory("ICU Nurse");
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+        when(staffProfileRepository.save(staffProfile)).thenReturn(staffProfile);
+
+        StaffProfileResponseDto response = authService.updateStaffProfile("rohan@test.com",
+                new StaffProfileRequest(
+                        "123456789012",
+                        LocalDate.of(2026, 12, 31),
+                        LocalDate.of(2026, 1, 15)
+                ),
+                null,
+                null,
+                null);
+
+        assertThat(staffProfile.getAadharCardNumber()).isEqualTo("123456789012");
+        assertThat(staffProfile.getLicenseValidityDate()).isEqualTo(LocalDate.of(2026, 12, 31));
+        assertThat(staffProfile.getLicenseRenewalDate()).isEqualTo(LocalDate.of(2026, 1, 15));
+        assertThat(response.getAadharCardNumber()).isEqualTo("123456789012");
+        assertThat(response.getStateBoardCertificatePath()).isNull();
+        assertThat(response.getEducationalDocumentPaths()).isEmpty();
+        assertThat(response.getPhotoPaths()).isEmpty();
+        verify(staffProfileRepository).save(staffProfile);
+        verify(staffDocumentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("updateStaffProfile: stores documents and replaces state board certificate")
+    void updateStaffProfile_withFiles_storesDocuments(@TempDir Path tempDir) {
+        ReflectionTestUtils.setField(authService, "uploadDir", tempDir.toString());
+
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setStaffCategory("ICU Nurse");
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+        when(staffProfileRepository.save(staffProfile)).thenReturn(staffProfile);
+
+        MultipartFile cert = Mockito.mock(MultipartFile.class);
+        when(cert.isEmpty()).thenReturn(false);
+        when(cert.getOriginalFilename()).thenReturn("state-board-cert.pdf");
+
+        MultipartFile doc = Mockito.mock(MultipartFile.class);
+        when(doc.isEmpty()).thenReturn(false);
+        when(doc.getOriginalFilename()).thenReturn("bsc-degree.pdf");
+
+        MultipartFile photo = Mockito.mock(MultipartFile.class);
+        when(photo.isEmpty()).thenReturn(false);
+        when(photo.getOriginalFilename()).thenReturn("staff-photo.jpg");
+
+        authService.updateStaffProfile("rohan@test.com",
+                new StaffProfileRequest("123456789012", null, null),
+                cert,
+                List.of(doc),
+                List.of(photo));
+
+        assertThat(staffProfile.getAadharCardNumber()).isEqualTo("123456789012");
+        verify(staffDocumentRepository).deleteByStaffProfileIdAndDocumentType(
+                10L, StaffDocumentType.STATE_BOARD_CERTIFICATE);
+
+        ArgumentCaptor<StaffDocument> captor = ArgumentCaptor.forClass(StaffDocument.class);
+        verify(staffDocumentRepository, times(3)).save(captor.capture());
+
+        List<StaffDocument> savedDocs = captor.getAllValues();
+        assertThat(savedDocs)
+                .extracting(StaffDocument::getDocumentType)
+                .containsExactlyInAnyOrder(
+                        StaffDocumentType.STATE_BOARD_CERTIFICATE,
+                        StaffDocumentType.EDUCATIONAL_CERTIFICATE,
+                        StaffDocumentType.PHOTO);
+        assertThat(tempDir.toFile().listFiles()).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("updateStaffProfile: user not found throws UserNotFoundException")
+    void updateStaffProfile_userNotFound_throws() {
+        when(userRepository.findByEmail("nobody@test.com")).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> authService.updateStaffProfile("nobody@test.com",
+                new StaffProfileRequest("123456789012", null, null), null, null, null))
+                .isInstanceOf(UserNotFoundException.class)
+                .hasMessageContaining("nobody@test.com");
+
+        verify(staffProfileRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("updateStaffProfile: staff profile not found throws ResourceNotFoundException")
+    void updateStaffProfile_staffProfileNotFound_throws() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setRole(Role.ROLE_STAFF);
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> authService.updateStaffProfile("rohan@test.com",
+                new StaffProfileRequest("123456789012", null, null), null, null, null))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(staffProfileRepository, never()).save(any());
+        verify(staffDocumentRepository, never()).save(any());
+    }
+
+    // =====================================================================
+    //  verifyStaffProfile (admin)
+    // =====================================================================
+
+    @Test
+    @DisplayName("verifyStaffProfile: sets verified flag and sends profile verified email")
+    void verifyStaffProfile_verifiedTrue_setsVerifiedAndSendsEmail() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setFirstName("Rohan");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setStaffCategory("ICU Nurse");
+        staffProfile.setVerified(false);
+
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+        when(staffProfileRepository.save(staffProfile)).thenReturn(staffProfile);
+
+        StaffProfileResponseDto response = authService.verifyStaffProfile(5L, true);
+
+        assertThat(staffProfile.isVerified()).isTrue();
+        assertThat(response.isVerified()).isTrue();
+        assertThat(response.getFirstName()).isEqualTo("Rohan");
+        assertThat(response.getEmail()).isEqualTo("rohan@test.com");
+        verify(staffProfileRepository).save(staffProfile);
+        verify(emailService).sendProfileVerifiedEmail("rohan@test.com", "Rohan");
+    }
+
+    @Test
+    @DisplayName("verifyStaffProfile: sets verified flag to false and sends rejection email")
+    void verifyStaffProfile_verifiedFalse_setsFlagAndSendsRejectionEmail() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setFirstName("Rohan");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setStaffCategory("ICU Nurse");
+        staffProfile.setVerified(true);
+
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+        when(staffProfileRepository.save(staffProfile)).thenReturn(staffProfile);
+
+        StaffProfileResponseDto response = authService.verifyStaffProfile(5L, false);
+
+        assertThat(staffProfile.isVerified()).isFalse();
+        assertThat(response.isVerified()).isFalse();
+        verify(staffProfileRepository).save(staffProfile);
+        verify(emailService).sendProfileRejectedEmail("rohan@test.com", "Rohan");
+        verify(emailService, never()).sendProfileVerifiedEmail(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("verifyStaffProfile: staff profile not found throws ResourceNotFoundException")
+    void verifyStaffProfile_notFound_throws() {
+        when(staffProfileRepository.findByUserId(99L)).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> authService.verifyStaffProfile(99L, true))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(staffProfileRepository, never()).save(any());
+        verifyNoInteractions(emailService);
+    }
+
+    // =====================================================================
+    //  getStaffProfile (self-service)
+    // =====================================================================
+
+    @Test
+    @DisplayName("getStaffProfile: returns the staff profile of the authenticated user")
+    void getStaffProfile_valid_returnsResponse() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setStaffCategory("ICU Nurse");
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+
+        StaffProfileResponseDto response = authService.getStaffProfile("rohan@test.com");
+
+        assertThat(response.getId()).isEqualTo(10L);
+        assertThat(response.getStaffCategory()).isEqualTo("ICU Nurse");
+        assertThat(response.isVerified()).isFalse();
+    }
+
+    @Test
+    @DisplayName("getStaffProfile: user not found throws UserNotFoundException")
+    void getStaffProfile_userNotFound_throws() {
+        when(userRepository.findByEmail("nobody@test.com")).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> authService.getStaffProfile("nobody@test.com"))
+                .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("getAllStaffProfiles: returns all staff profiles")
+    void getAllStaffProfiles_returnsAllProfiles() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setFirstName("Rohan");
+        user.setLastName("Mehta");
+        user.setPhone("9876543210");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setStaffCategory("ICU Nurse");
+
+        org.springframework.data.domain.Page<StaffProfile> staffPage =
+                new org.springframework.data.domain.PageImpl<>(
+                        java.util.List.of(staffProfile),
+                        PageRequest.of(0, 10),
+                        1
+                );
+        when(staffProfileRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(staffPage);
+
+        StaffDocument cert = new StaffDocument();
+        cert.setStaffProfile(staffProfile);
+        cert.setDocumentType(StaffDocumentType.STATE_BOARD_CERTIFICATE);
+        cert.setFilePath("uploads/staff/5/certificate/cert.pdf");
+
+        StaffDocument doc = new StaffDocument();
+        doc.setStaffProfile(staffProfile);
+        doc.setDocumentType(StaffDocumentType.EDUCATIONAL_CERTIFICATE);
+        doc.setFilePath("uploads/staff/5/education/bsc.pdf");
+
+        when(staffDocumentRepository.findByStaffProfileIdIn(java.util.List.of(10L)))
+                .thenReturn(java.util.List.of(cert, doc));
+
+        Page<StaffProfileResponseDto> profiles = authService.getAllStaffProfiles(PageRequest.of(0, 10));
+
+        assertThat(profiles.getTotalElements()).isEqualTo(1);
+        assertThat(profiles.getContent()).hasSize(1);
+        assertThat(profiles.getContent().get(0).getStaffCategory()).isEqualTo("ICU Nurse");
+        assertThat(profiles.getContent().get(0).isVerified()).isFalse();
+        assertThat(profiles.getContent().get(0).getFirstName()).isEqualTo("Rohan");
+        assertThat(profiles.getContent().get(0).getLastName()).isEqualTo("Mehta");
+        assertThat(profiles.getContent().get(0).getEmail()).isEqualTo("rohan@test.com");
+        assertThat(profiles.getContent().get(0).getPhone()).isEqualTo("9876543210");
+        assertThat(profiles.getContent().get(0).getStateBoardCertificatePath())
+                .isEqualTo("uploads/staff/5/certificate/cert.pdf");
+        assertThat(profiles.getContent().get(0).getEducationalDocumentPaths())
+                .containsExactly("uploads/staff/5/education/bsc.pdf");
+
+        // Batch loading: documents fetched once with an IN query, not per-profile
+        verify(staffDocumentRepository).findByStaffProfileIdIn(java.util.List.of(10L));
+        verify(staffDocumentRepository, never()).findByStaffProfileId(anyLong());
+    }
+
+    @Test
+    @DisplayName("getAllStaffProfiles: empty page skips document query")
+    void getAllStaffProfiles_emptyPage_skipsDocumentQuery() {
+        org.springframework.data.domain.Page<StaffProfile> emptyPage =
+                new org.springframework.data.domain.PageImpl<>(
+                        java.util.List.of(),
+                        PageRequest.of(0, 10),
+                        0
+                );
+        when(staffProfileRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(emptyPage);
+
+        Page<StaffProfileResponseDto> profiles = authService.getAllStaffProfiles(PageRequest.of(0, 10));
+
+        assertThat(profiles.getContent()).isEmpty();
+        assertThat(profiles.getTotalElements()).isZero();
+        verify(staffDocumentRepository, never()).findByStaffProfileIdIn(any());
+        verify(staffDocumentRepository, never()).findByStaffProfileId(anyLong());
     }
 }
