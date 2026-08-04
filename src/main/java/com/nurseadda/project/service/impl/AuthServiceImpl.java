@@ -267,6 +267,15 @@ public class AuthServiceImpl implements AuthService {
                         "Staff profile not found for user : " + email
                 ));
 
+        // Once verified, documents can only be changed with administrator
+        // approval, never directly through this profile-update endpoint.
+        if (staffProfile.isVerified() && hasDocumentFiles(passportPhoto, educationalDocuments)) {
+            throw new IllegalArgumentException(
+                    "Your profile is verified. Documents can only be changed when "
+                            + "the administrator requests a replacement."
+            );
+        }
+
         if (staffProfileRequest.getAadharCardNumber() != null
                 && !staffProfileRequest.getAadharCardNumber().isBlank()) {
             staffProfile.setAadharCardNumber(staffProfileRequest.getAadharCardNumber());
@@ -317,6 +326,19 @@ public class AuthServiceImpl implements AuthService {
         staffProfileRepository.save(staffProfile);
 
         return buildStaffProfileResponse(staffProfile);
+    }
+
+    private boolean hasDocumentFiles(MultipartFile passportPhoto,
+                                     List<MultipartFile> educationalDocuments) {
+        return (passportPhoto != null && !passportPhoto.isEmpty())
+                || hasNonEmptyFile(educationalDocuments);
+    }
+
+    private boolean hasNonEmptyFile(List<MultipartFile> files) {
+        if (files == null) {
+            return false;
+        }
+        return files.stream().anyMatch(file -> file != null && !file.isEmpty());
     }
 
     private String storeFile(MultipartFile file, Long userId, String folder) {
