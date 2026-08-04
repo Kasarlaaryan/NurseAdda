@@ -1,14 +1,17 @@
 package com.nurseadda.project.service.impl;
 
+import com.nurseadda.project.common.exception.IllegalCredentialsException;
 import com.nurseadda.project.common.exception.InvalidOtpException;
 import com.nurseadda.project.common.exception.ResourceNotFoundException;
 import com.nurseadda.project.common.exception.UserAlreadyExistException;
 import com.nurseadda.project.common.exception.UserNotFoundException;
 import com.nurseadda.project.dto.request.ClientProfileRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
+import com.nurseadda.project.dto.request.LoginRequest;
 import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
 import com.nurseadda.project.dto.request.VerifyOtpRequest;
+import com.nurseadda.project.dto.response.StaffDocumentResponseDto;
 import com.nurseadda.project.dto.response.StaffProfileResponseDto;
 import com.nurseadda.project.dto.response.UserResponseDto;
 import com.nurseadda.project.enums.Role;
@@ -38,10 +41,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -704,5 +709,224 @@ class AuthServiceImplTest {
         assertThat(profiles.getTotalElements()).isZero();
         verify(staffDocumentRepository, never()).findByStaffProfileIdIn(any());
         verify(staffDocumentRepository, never()).findByStaffProfileId(anyLong());
+    }
+
+    // =====================================================================
+    //  reuploadStaffDocument (replacement-requested document)
+    // =====================================================================
+
+    @Test
+    @DisplayName("reuploadStaffDocument: replaces the file, clears the request, un-verifies the profile and notifies admins")
+    void reuploadStaffDocument_replacesFileAndUnverifiesProfile(@TempDir Path tempDir) throws Exception {
+        ReflectionTestUtils.setField(authService, "uploadDir", tempDir.toString());
+
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setFirstName("Rohan");
+        user.setLastName("Mehta");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setStaffCategory("ICU Nurse");
+        staffProfile.setVerified(true);
+
+        Path oldFile = tempDir.resolve("certificate/old-cert.pdf");
+        Files.createDirectories(oldFile.getParent());
+        Files.writeString(oldFile, "old data");
+
+        StaffDocument document = new StaffDocument();
+        document.setId(100L);
+        document.setStaffProfile(staffProfile);
+        document.setDocumentType(StaffDocumentType.STATE_BOARD_CERTIFICATE);
+        document.setFileName("old-cert.pdf");
+        document.setFilePath(oldFile.toString());
+        document.setVerified(true);
+        document.setReplacementRequested(true);
+        document.setRequestReason("Certificate expired");
+        document.setExpiryDate(LocalDate.now().minusDays(1));
+
+        User admin = new User();
+        admin.setId(1L);
+        admin.setEmail("admin@nurseadda.com");
+        admin.setRole(Role.ROLE_ADMIN);
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+        when(staffDocumentRepository.findById(100L)).thenReturn(java.util.Optional.of(document));
+        when(staffDocumentRepository.save(document)).thenReturn(document);
+        when(userRepository.findByRoleIn(List.of(Role.ROLE_ADMIN, Role.ROLE_SUPER_ADMIN)))
+                .thenReturn(List.of(admin));
+
+        MockMultipartFile file = new MockMultipartFile("file", "new-cert.pdf",
+                "application/pdf", new byte[]{1, 2, 3});
+
+        StaffDocumentResponseDto result = authService.reuploadStaffDocument(
+                "rohan@test.com", 100L, file);
+
+        // Old file replaced on disk, new one stored
+        assertThat(Files.exists(oldFile)).isFalse();
+        assertThat(document.getFilePath()).isNotEqualTo(oldFile.toString());
+        assertThat(Files.exists(Path.of(document.getFilePath()))).isTrue();
+        assertThat(document.getFileName()).isEqualTo("new-cert.pdf");
+
+        // Replacement request consumed and document pending verification again
+        assertThat(document.isVerified()).isFalse();
+        assertThat(document.isReplacementRequested()).isFalse();
+        assertThat(document.getRequestReason()).isNull();
+        // Stale expiry cleared so the scheduler does not immediately re-flag it
+        assertThat(document.getExpiryDate()).isNull();
+
+        // Profile un-verified until the new document is approved
+        assertThat(staffProfile.isVerified()).isFalse();
+
+        assertThat(result.isReplacementRequested()).isFalse();
+        assertThat(result.isVerified()).isFalse();
+        verify(staffDocumentRepository).save(document);
+        verify(staffProfileRepository).save(staffProfile);
+
+        // Admins notified so they can review the new submission
+        verify(userRepository).findByRoleIn(List.of(Role.ROLE_ADMIN, Role.ROLE_SUPER_ADMIN));
+        verify(emailService).sendDocumentSubmittedEmail(
+                "admin@nurseadda.com", "Rohan Mehta", "STATE_BOARD_CERTIFICATE");
+    }
+
+    @Test
+    @DisplayName("reuploadStaffDocument: no admin users means no notification email")
+    void reuploadStaffDocument_noAdmins_noNotification(@TempDir Path tempDir) throws Exception {
+        ReflectionTestUtils.setField(authService, "uploadDir", tempDir.toString());
+
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setFirstName("Rohan");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setVerified(true);
+
+        StaffDocument document = new StaffDocument();
+        document.setId(100L);
+        document.setStaffProfile(staffProfile);
+        document.setDocumentType(StaffDocumentType.STATE_BOARD_CERTIFICATE);
+        document.setFilePath("uploads/staff/5/certificate/old.pdf");
+        document.setVerified(true);
+        document.setReplacementRequested(true);
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+        when(staffDocumentRepository.findById(100L)).thenReturn(java.util.Optional.of(document));
+        when(staffDocumentRepository.save(document)).thenReturn(document);
+        when(userRepository.findByRoleIn(List.of(Role.ROLE_ADMIN, Role.ROLE_SUPER_ADMIN)))
+                .thenReturn(List.of());
+
+        MockMultipartFile file = new MockMultipartFile("file", "new-cert.pdf",
+                "application/pdf", new byte[]{1, 2, 3});
+
+        authService.reuploadStaffDocument("rohan@test.com", 100L, file);
+
+        verify(staffProfileRepository).save(staffProfile);
+        verify(emailService, never()).sendDocumentSubmittedEmail(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("reuploadStaffDocument: throws when no replacement was requested")
+    void reuploadStaffDocument_notRequested_throwsIllegalArgument() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+        staffProfile.setVerified(true);
+
+        StaffDocument document = new StaffDocument();
+        document.setId(100L);
+        document.setStaffProfile(staffProfile);
+        document.setDocumentType(StaffDocumentType.STATE_BOARD_CERTIFICATE);
+        document.setVerified(true);
+        document.setReplacementRequested(false);
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+        when(staffDocumentRepository.findById(100L)).thenReturn(java.util.Optional.of(document));
+
+        MockMultipartFile file = new MockMultipartFile("file", "new-cert.pdf",
+                "application/pdf", new byte[]{1, 2, 3});
+
+        assertThatThrownBy(() -> authService.reuploadStaffDocument("rohan@test.com", 100L, file))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("replaced");
+
+        verify(staffDocumentRepository, never()).save(any());
+        verify(staffProfileRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("reuploadStaffDocument: document of another profile throws ResourceNotFoundException")
+    void reuploadStaffDocument_wrongProfile_throws() {
+        User user = new User();
+        user.setId(5L);
+        user.setEmail("rohan@test.com");
+        user.setRole(Role.ROLE_STAFF);
+
+        StaffProfile staffProfile = new StaffProfile();
+        staffProfile.setId(10L);
+        staffProfile.setUser(user);
+
+        StaffProfile otherProfile = new StaffProfile();
+        otherProfile.setId(99L);
+
+        StaffDocument document = new StaffDocument();
+        document.setId(100L);
+        document.setStaffProfile(otherProfile);
+        document.setReplacementRequested(true);
+
+        when(userRepository.findByEmail("rohan@test.com")).thenReturn(java.util.Optional.of(user));
+        when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.of(staffProfile));
+        when(staffDocumentRepository.findById(100L)).thenReturn(java.util.Optional.of(document));
+
+        MockMultipartFile file = new MockMultipartFile("file", "new-cert.pdf",
+                "application/pdf", new byte[]{1, 2, 3});
+
+        assertThatThrownBy(() -> authService.reuploadStaffDocument("rohan@test.com", 100L, file))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("100");
+
+        verify(staffDocumentRepository, never()).save(any());
+    }
+
+    // =====================================================================
+    //  login — disabled (rejected) account
+    // =====================================================================
+
+    @Test
+    @DisplayName("login: disabled account is rejected with IllegalCredentialsException")
+    void login_disabledUser_throwsIllegalCredentials() {
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("disabled@test.com");
+        user.setPassword("$2a$10$hash");
+        user.setEnabled(false);
+        user.setRole(Role.ROLE_USER);
+
+        when(userRepository.findByEmail("disabled@test.com"))
+                .thenReturn(java.util.Optional.of(user));
+        when(passwordEncoder.matches("secret123", "$2a$10$hash")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.login(
+                new LoginRequest("disabled@test.com", "secret123")
+        ))
+                .isInstanceOf(IllegalCredentialsException.class)
+                .hasMessageContaining("disabled");
+
+        verify(jwtUtil, never()).generateAccessToken(any());
+        verify(jwtUtil, never()).generateRefreshToken(any());
     }
 }

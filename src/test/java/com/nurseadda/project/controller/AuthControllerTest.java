@@ -10,6 +10,7 @@ import com.nurseadda.project.dto.request.ClientRegisterRequest;
 import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
 import com.nurseadda.project.dto.request.StaffVerificationRequest;
+import com.nurseadda.project.dto.response.StaffDocumentResponseDto;
 import com.nurseadda.project.dto.response.StaffProfileResponseDto;
 import com.nurseadda.project.dto.response.UserResponseDto;
 import com.nurseadda.project.enums.Role;
@@ -37,6 +38,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -626,6 +628,49 @@ class AuthControllerTest {
                         "Mobile number must be 10-15 digits, optionally starting with +"));
 
         verify(authService, never()).updateClientProfile(any(), any());
+    }
+
+    // =====================================================================
+    //  reuploadStaffDocument (PUT /api/auth/staff-profile/documents/{documentId})
+    // =====================================================================
+
+    @Test
+    @DisplayName("reuploadStaffDocument: valid multipart request returns 200 with the updated document")
+    void reuploadStaffDocument_returns200() throws Exception {
+        StaffDocumentResponseDto responseDto = StaffDocumentResponseDto.builder()
+                .id(100L)
+                .fileName("new-cert.pdf")
+                .verified(false)
+                .replacementRequested(false)
+                .build();
+
+        when(authService.reuploadStaffDocument(eq("rohan@test.com"), eq(100L), any(MultipartFile.class)))
+                .thenReturn(responseDto);
+
+        MockMultipartFile file = new MockMultipartFile("file", "new-cert.pdf",
+                MediaType.APPLICATION_PDF_VALUE, new byte[]{1, 2, 3});
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/api/auth/staff-profile/documents/100")
+                        .file(file)
+                        .principal(new UsernamePasswordAuthenticationToken("rohan@test.com", null)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(100))
+                .andExpect(jsonPath("$.fileName").value("new-cert.pdf"))
+                .andExpect(jsonPath("$.verified").value(false))
+                .andExpect(jsonPath("$.replacementRequested").value(false));
+
+        verify(authService).reuploadStaffDocument(eq("rohan@test.com"), eq(100L), any(MultipartFile.class));
+    }
+
+    @Test
+    @DisplayName("reuploadStaffDocument: missing file part returns 400")
+    void reuploadStaffDocument_missingFilePart_returns400() throws Exception {
+        mockMvc.perform(multipart(HttpMethod.PUT, "/api/auth/staff-profile/documents/100")
+                        .principal(new UsernamePasswordAuthenticationToken("rohan@test.com", null)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Missing required part: file"));
+
+        verify(authService, never()).reuploadStaffDocument(anyString(), anyLong(), any());
     }
 
     @Test

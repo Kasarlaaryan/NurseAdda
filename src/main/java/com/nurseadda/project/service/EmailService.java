@@ -7,4 +7,8 @@ public interface EmailService {
     void sendProfileVerifiedEmail(String to, String firstName);
 
     void sendProfileRejectedEmail(String to, String firstName);
+
+    void sendDocumentReplacementRequestEmail(String to, String firstName, String documentType, String reason);
+
+    void sendDocumentSubmittedEmail(String to, String staffName, String documentType);
 }

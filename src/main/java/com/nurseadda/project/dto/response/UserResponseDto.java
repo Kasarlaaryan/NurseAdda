@@ -23,4 +23,8 @@ public class UserResponseDto {
     private String phone;
 
     private Role role;
+
+    private boolean enabled = true;
+
+    private boolean emailVerified;
 }

@@ -9,6 +9,7 @@ import com.nurseadda.project.dto.request.StaffRegisterRequest;
 import com.nurseadda.project.dto.request.StaffVerificationRequest;
 import com.nurseadda.project.dto.request.VerifyOtpRequest;
 import com.nurseadda.project.dto.response.AuthResponseDto;
+import com.nurseadda.project.dto.response.StaffDocumentResponseDto;
 import com.nurseadda.project.dto.response.StaffProfileResponseDto;
 import com.nurseadda.project.dto.response.UserResponseDto;
 import com.nurseadda.project.service.AuthService;
@@ -93,6 +94,17 @@ public class AuthController {
     ) {
         StaffProfileResponseDto response = authService.verifyStaffProfile(
                 userId, verificationRequest.getVerified());
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping(value = "/staff-profile/documents/{documentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<StaffDocumentResponseDto> reuploadStaffDocument(
+            Authentication authentication,
+            @PathVariable Long documentId,
+            @RequestPart("file") MultipartFile file
+    ) {
+        String email = (String) authentication.getPrincipal();
+        StaffDocumentResponseDto response = authService.reuploadStaffDocument(email, documentId, file);
         return ResponseEntity.ok(response);
     }
 

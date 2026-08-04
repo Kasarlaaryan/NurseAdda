@@ -14,6 +14,7 @@ import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
 import com.nurseadda.project.dto.request.VerifyOtpRequest;
 import com.nurseadda.project.dto.response.AuthResponseDto;
+import com.nurseadda.project.dto.response.StaffDocumentResponseDto;
 import com.nurseadda.project.dto.response.StaffProfileResponseDto;
 import com.nurseadda.project.dto.response.UserResponseDto;
 import org.springframework.data.domain.Page;
@@ -45,6 +46,9 @@ public interface AuthService {
     ) throws UserNotFoundException, ResourceNotFoundException;
 
     StaffProfileResponseDto verifyStaffProfile(Long userId, boolean verified) throws ResourceNotFoundException;
+
+    StaffDocumentResponseDto reuploadStaffDocument(String email, Long documentId, MultipartFile file)
+            throws UserNotFoundException, ResourceNotFoundException;
 
     StaffProfileResponseDto getStaffProfile(String email) throws UserNotFoundException, ResourceNotFoundException;
 

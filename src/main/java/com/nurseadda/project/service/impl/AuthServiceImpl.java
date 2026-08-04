@@ -14,6 +14,7 @@ import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
 import com.nurseadda.project.dto.request.VerifyOtpRequest;
 import com.nurseadda.project.dto.response.AuthResponseDto;
+import com.nurseadda.project.dto.response.StaffDocumentResponseDto;
 import com.nurseadda.project.dto.response.StaffProfileResponseDto;
 import com.nurseadda.project.dto.response.UserResponseDto;
 import com.nurseadda.project.entity.Client;
@@ -33,6 +34,7 @@ import com.nurseadda.project.service.AuthService;
 import com.nurseadda.project.service.EmailService;
 import com.nurseadda.project.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -55,6 +57,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
@@ -146,6 +149,12 @@ public class AuthServiceImpl implements AuthService {
 
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new IllegalCredentialsException("Invalid email or password");
+        }
+
+        if (!user.isEnabled()) {
+            throw new IllegalCredentialsException(
+                    "Your account has been disabled. Please contact support"
+            );
         }
 
         String accessToken = jwtUtil.generateAccessToken(user);
@@ -325,6 +334,74 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    public StaffDocumentResponseDto reuploadStaffDocument(String email, Long documentId, MultipartFile file)
+            throws UserNotFoundException, ResourceNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "User not found with email : " + email
+                ));
+
+        StaffProfile staffProfile = staffProfileRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Staff profile not found for user : " + email
+                ));
+
+        StaffDocument document = staffDocumentRepository.findById(documentId)
+                .filter(d -> d.getStaffProfile().getId().equals(staffProfile.getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Document not found with id : " + documentId
+                ));
+
+        if (!document.isReplacementRequested()) {
+            throw new IllegalArgumentException(
+                    "Document cannot be replaced. The administrator must first request a new submission."
+            );
+        }
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Document file is required");
+        }
+
+        // Replace the stored file on disk
+        deleteFile(document.getFilePath());
+        String folder = folderFor(document.getDocumentType());
+        String newPath = storeFile(file, user.getId(), folder);
+
+        document.setFileName(safeFileName(file, newPath));
+        document.setFilePath(newPath);
+        document.setVerified(false);
+        document.setReplacementRequested(false);
+        document.setRequestReason(null);
+        // The new certificate's expiry is unknown until the admin re-sets it
+        document.setExpiryDate(null);
+        staffDocumentRepository.save(document);
+
+        // New submission is pending admin review -> un-verify the profile
+        if (staffProfile.isVerified()) {
+            staffProfile.setVerified(false);
+            staffProfileRepository.save(staffProfile);
+        }
+
+        notifyAdminsOfSubmission(user, document);
+
+        return toDocumentDto(document);
+    }
+
+    private void notifyAdminsOfSubmission(User staffUser, StaffDocument document) {
+        List<User> admins = userRepository.findByRoleIn(List.of(Role.ROLE_ADMIN, Role.ROLE_SUPER_ADMIN));
+        String staffName = (staffUser.getFirstName() == null ? "" : staffUser.getFirstName())
+                + (staffUser.getLastName() == null ? "" : " " + staffUser.getLastName());
+        for (User admin : admins) {
+            emailService.sendDocumentSubmittedEmail(
+                    admin.getEmail(),
+                    staffName.trim(),
+                    document.getDocumentType().name()
+            );
+        }
+    }
+
+    @Override
+    @Transactional
     public StaffProfileResponseDto verifyStaffProfile(Long userId, boolean verified) throws ResourceNotFoundException {
         StaffProfile staffProfile = staffProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -421,6 +498,38 @@ public class AuthServiceImpl implements AuthService {
         document.setFileName(fileName);
         document.setFilePath(filePath);
         staffDocumentRepository.save(document);
+    }
+
+    private String folderFor(StaffDocumentType documentType) {
+        return switch (documentType) {
+            case STATE_BOARD_CERTIFICATE -> "certificate";
+            case EDUCATIONAL_CERTIFICATE -> "education";
+            case PHOTO -> "photos";
+        };
+    }
+
+    private void deleteFile(String filePath) {
+        if (filePath == null || filePath.isBlank()) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(Paths.get(filePath));
+        } catch (IOException e) {
+            log.warn("Failed to delete file: {}", filePath, e);
+        }
+    }
+
+    private StaffDocumentResponseDto toDocumentDto(StaffDocument document) {
+        return StaffDocumentResponseDto.builder()
+                .id(document.getId())
+                .documentType(document.getDocumentType())
+                .fileName(document.getFileName())
+                .filePath(document.getFilePath())
+                .verified(document.isVerified())
+                .expiryDate(document.getExpiryDate())
+                .replacementRequested(document.isReplacementRequested())
+                .requestReason(document.getRequestReason())
+                .build();
     }
 
     private StaffProfileResponseDto buildStaffProfileResponse(StaffProfile staffProfile) {
