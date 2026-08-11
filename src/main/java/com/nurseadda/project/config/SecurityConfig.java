@@ -4,6 +4,7 @@ import com.nurseadda.project.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -29,8 +30,14 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/send-otp",
                                 "/api/auth/verify-otp",
+                                "/api/auth/resend-otp",
+                                "/api/auth/refresh",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
                                 "/uploads/**"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/auth/users/*/unlock")
+                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -24,6 +24,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(
@@ -35,6 +36,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             if (token == null)
                 throw new AuthenticationException("Authorization header is empty");
+
+            if (tokenBlacklistService.isBlacklisted(token)) {
+                log.error("Token has been revoked : {}", token);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("""
+                            {
+                                "message":"Token has been revoked. Please login again"
+                            }
+                        """);
+                return;
+            }
 
             String email = jwtUtil.retrieveEmailFromToken(token);
             List<String> roles = jwtUtil.retrieveRolesFromToken(token);
@@ -110,6 +123,10 @@ Java 15 introduced multiline string literals
                 || path.equals("/api/auth/login")
                 || path.equals("/api/auth/send-otp")
                 || path.equals("/api/auth/verify-otp")
+                || path.equals("/api/auth/resend-otp")
+                || path.equals("/api/auth/refresh")
+                || path.equals("/api/auth/forgot-password")
+                || path.equals("/api/auth/reset-password")
                 || path.startsWith("/uploads/");
     }
 

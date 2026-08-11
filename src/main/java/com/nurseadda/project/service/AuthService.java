@@ -6,8 +6,13 @@ import com.nurseadda.project.common.exception.OtpExpiredException;
 import com.nurseadda.project.common.exception.ResourceNotFoundException;
 import com.nurseadda.project.common.exception.UserAlreadyExistException;
 import com.nurseadda.project.common.exception.UserNotFoundException;
+import com.nurseadda.project.dto.request.ChangePasswordRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
+import com.nurseadda.project.dto.request.ForgotPasswordRequest;
 import com.nurseadda.project.dto.request.LoginRequest;
+import com.nurseadda.project.dto.request.LogoutRequest;
+import com.nurseadda.project.dto.request.RefreshTokenRequest;
+import com.nurseadda.project.dto.request.ResetPasswordRequest;
 import com.nurseadda.project.dto.request.SendOtpRequest;
 import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
@@ -40,4 +45,20 @@ public interface AuthService {
             MultipartFile passportPhoto,
             List<MultipartFile> educationalDocuments
     ) throws UserNotFoundException, ResourceNotFoundException;
+
+    AuthResponseDto refresh(RefreshTokenRequest refreshTokenRequest);
+
+    UserResponseDto getCurrentUser(String email) throws UserNotFoundException;
+
+    void logout(String accessToken, LogoutRequest logoutRequest);
+
+    void changePassword(String email, ChangePasswordRequest changePasswordRequest)
+            throws UserNotFoundException, IllegalCredentialsException;
+
+    void forgotPassword(ForgotPasswordRequest forgotPasswordRequest) throws UserNotFoundException;
+
+    void resetPassword(ResetPasswordRequest resetPasswordRequest)
+            throws UserNotFoundException, InvalidOtpException, OtpExpiredException;
+
+    String unlockAccount(Long userId) throws UserNotFoundException;
 }
