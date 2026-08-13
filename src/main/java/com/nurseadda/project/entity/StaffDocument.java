@@ -3,9 +3,6 @@ package com.nurseadda.project.entity;
 import com.nurseadda.project.enums.StaffDocumentType;
 import jakarta.persistence.*;
 import lombok.Data;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -21,16 +18,12 @@ public class StaffDocument {
     private StaffProfile staffProfile;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 40)
+    @Column(nullable = false, length = 30)
     private StaffDocumentType documentType;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String fileName;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String filePath;
-
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime uploadedAt;
 }

@@ -1,0 +1,212 @@
+{
+  "info": {
+    "name": "NurseAdda API",
+    "description": "NurseAdda Auth & Staff APIs. The base URL is http://localhost:8080 (variable: baseUrl).\n\nQUICK TIP: the 'Login' request auto-saves the accessToken into the collection variable 'accessToken', so all protected requests (marked with the 🔒 emoji) work automatically after you login.\n\nOTP note: there is no Resend API key configured in local dev, so OTPs are NOT emailed - they are printed in the app console log. After calling register/send-otp, open the terminal running the app and copy the 6-digit code from the 'OTP for <email> : XXXXXX' line into the verify-otp request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Registration",
+      "item": [
+        {
+          "name": "Register Staff",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/register-staff", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register-staff"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Anita Desai\",\n  \"email\": \"anita.desai.e2e@test.com\",\n  \"phone\": \"9876512345\",\n  \"staffCategory\": \"OT Nurse\",\n  \"password\": \"staffpass456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sends a 6-digit OTP to the email (printed in the app console log in dev). Returns 200 'OTP sent to your email'."
+          }
+        },
+        {
+          "name": "Register Client",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/register-client", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register-client"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Riya\",\n  \"lastName\": \"Sharma\",\n  \"email\": \"riya.client@test.com\",\n  \"mobileNumber\": \"9876543210\",\n  \"password\": \"client123\",\n  \"confirmPassword\": \"client123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Sends a 6-digit OTP to the email (printed in the app console log in dev)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. OTP Verification",
+      "item": [
+        {
+          "name": "Send / Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/send-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "send-otp"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"anita.desai.e2e@test.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Use this if the OTP expired or was never received. New OTP goes to the app console log."
+          }
+        },
+        {
+          "name": "Verify OTP (completes registration)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "verify-otp"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"anita.desai.e2e@test.com\",\n  \"otp\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Replace otp with the code from the app console log. On success creates the user + staff profile and returns access & refresh tokens."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Login (auto-saves token)",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@nurseadda.com\",\n  \"password\": \"admin123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Auto-stores the returned accessToken into the collection variable. Try these users:\n- ADMIN: admin@nurseadda.com / admin123\n- STAFF: anita.desai.e2e@test.com / staffpass456",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "const json = pm.response.json();",
+                    "if (json.accessToken) {",
+                    "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                    "}",
+                    "pm.test('login successful', () => pm.response.to.have.status(200));"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Client Profile",
+      "item": [
+        {
+          "name": "Update Client Profile 🔒",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/auth/client-profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "client-profile"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Riya\",\n  \"lastName\": \"Sharma\",\n  \"mobileNumber\": \"9999999999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Partial update - all fields optional. Requires a logged-in CLIENT token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Staff Profile",
+      "item": [
+        {
+          "name": "Update Staff Profile (multipart) 🔒",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/staff-profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "staff-profile"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "profile",
+                  "type": "text",
+                  "value": "{\n  \"aadharCardNumber\": \"987654321098\",\n  \"licenseValidityDate\": \"2030-12-31\",\n  \"licenseRenewalDate\": \"2030-06-30\"\n}"
+                },
+                { "key": "stateBoardCertificate", "type": "file", "src": [] },
+                { "key": "educationalDocuments", "type": "file", "src": [] },
+                { "key": "educationalDocuments", "type": "file", "src": [] },
+                { "key": "photos", "type": "file", "src": [] },
+                { "key": "photos", "type": "file", "src": [] }
+              ]
+            },
+            "description": "multipart/form-data parts:\n- 'profile' (required): JSON text with aadharCardNumber (12 digits), licenseValidityDate, licenseRenewalDate - all optional for partial update\n- 'stateBoardCertificate' (optional, single): replaces any previous one\n- 'educationalDocuments' (optional, multiple): appended\n- 'photos' (optional, multiple): appended\nRequires a logged-in STAFF token."
+          }
+        },
+        {
+          "name": "Get My Staff Profile 🔒",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/staff-profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "staff-profile"] },
+            "description": "Returns the authenticated staff member's profile incl. verified flag (green tick) and document paths."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Admin - Staff Management",
+      "item": [
+        {
+          "name": "List All Staff (paginated) 🔒",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/staff?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "staff"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Admin only. Returns { content, totalElements, totalPages, number, size, ... }. size is capped at 100."
+          }
+        },
+        {
+          "name": "Verify / Reject Staff 🔒",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/auth/staff/6/verification", "host": ["{{baseUrl}}"], "path": ["api", "auth", "staff", "6", "verification"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verified\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Admin only. {userId} is the USER id (from the login response or the staff list).\n- verified: true  -> sends 'Profile Verified' email\n- verified: false -> sends 'Profile Not Verified' (rejection) email"
+          }
+        }
+      ]
+    }
+  ]
+}

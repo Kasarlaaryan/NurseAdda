@@ -4,7 +4,24 @@
 
 POST /api/auth/register-staff  (fullName, email, phone, staffCategory, password)
 
-POST /api/auth/register-client (email, phone, password)
+POST /api/auth/register-client (firstName, lastName, email, mobileNumber, password, confirmPassword)
+
+PUT  /api/auth/client-profile   (self-service: update own profile - body: { firstName, lastName, mobileNumber })
+
+PUT  /api/auth/staff-profile    (staff: multipart - parts: profile JSON { aadharCardNumber, licenseValidityDate,
+                              licenseRenewalDate } + stateBoardCertificate (single file) + educationalDocuments[] + photos[])
+
+GET  /api/auth/staff-profile    (staff: view own profile - includes verified flag for the green tick)
+
+GET  /api/auth/staff                     (admin/super admin: paginated list of staff profiles with documents +
+                              verified status; query params page (default 0) and size (default 10, max 100);
+                              returns { content: [...], totalElements, totalPages, number, size, ... } and each
+                              item includes firstName, lastName, email, phone so the admin can identify who
+                              they are reviewing)
+
+PATCH /api/auth/staff/{userId}/verification   (admin/super admin: approve or reject staff - body: { "verified": true|false };
+                              sends a 'profile verified' email to the staff when verified=true, and a
+                              'profile not verified' (rejection) email when verified=false)
 
 POST /api/auth/login           (email, password) -> accessToken, refreshToken, user
 
@@ -98,23 +115,7 @@ PUT /api/staff/{id}
 
 DELETE /api/staff/{id}
 
-PUT /api/staff/profile          (self-service: complete own profile)
-
-GET /api/staff/profile          (self-service: view own profile)
-
 PATCH /api/staff/{userId}/verification   (admin: approve/reject staff - body: { "verified": true|false })
-
-POST /api/staff/documents       (staff: multipart upload - documentType + file)
-
-GET /api/staff/documents        (staff: list own documents)
-
-GET /api/staff/documents/{id}/download   (staff: download own document)
-
-DELETE /api/staff/documents/{id}        (staff: delete own document)
-
-GET /api/staff/{userId}/documents       (admin: list a staff user's documents)
-
-GET /api/staff/{userId}/documents/{id}/download   (admin: download a staff user's document)
 
 ---
 

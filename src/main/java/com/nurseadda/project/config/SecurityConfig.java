@@ -36,8 +36,9 @@ public class SecurityConfig {
                                 "/api/auth/reset-password",
                                 "/uploads/**"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.PATCH, "/api/auth/users/*/unlock")
+.requestMatchers(HttpMethod.PATCH, "/api/auth/users/*/unlock")
                         .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/auth/staff", "/api/auth/staff/*/verification").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
