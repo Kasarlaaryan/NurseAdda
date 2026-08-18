@@ -624,7 +624,8 @@ public class AuthServiceImpl implements AuthService {
                 .toList();
 
         List<String> photoPaths = documents.stream()
-                .filter(d -> d.getDocumentType() == StaffDocumentType.PHOTO)
+                .filter(d -> d.getDocumentType() == StaffDocumentType.PHOTO
+                        || d.getDocumentType() == StaffDocumentType.PASSPORT_PHOTO)
                 .map(StaffDocument::getFilePath)
                 .toList();
 
@@ -643,6 +644,99 @@ public class AuthServiceImpl implements AuthService {
                 .educationalDocumentPaths(educationalDocumentPaths)
                 .photoPaths(photoPaths)
                 .build();
+    }
+
+    // =====================================================================
+    //  Client profile CRUD
+    // =====================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponseDto getClientProfile(String email) throws UserNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "User not found with email : " + email
+                ));
+        return modelMapper.map(user, UserResponseDto.class);
+    }
+
+    @Override
+    @Transactional
+    public void deleteClientProfile(String email) throws UserNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "User not found with email : " + email
+                ));
+
+        // Delete the linked Client entity first
+        clientRepository.findByUserId(user.getId()).ifPresent(clientRepository::delete);
+
+        userRepository.delete(user);
+    }
+
+    // =====================================================================
+    //  Admin profile
+    // =====================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponseDto getAdminProfile(String email) throws UserNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "User not found with email : " + email
+                ));
+        return modelMapper.map(user, UserResponseDto.class);
+    }
+
+    @Override
+    @Transactional
+    public UserResponseDto updateAdminProfile(String email, ClientProfileRequest request) throws UserNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "User not found with email : " + email
+                ));
+
+        if (request.getFirstName() != null && !request.getFirstName().isBlank()) {
+            user.setFirstName(request.getFirstName());
+        }
+        if (request.getLastName() != null && !request.getLastName().isBlank()) {
+            user.setLastName(request.getLastName());
+        }
+        if (request.getMobileNumber() != null && !request.getMobileNumber().isBlank()) {
+            user.setPhone(request.getMobileNumber());
+        }
+
+        User updatedUser = userRepository.save(user);
+        return modelMapper.map(updatedUser, UserResponseDto.class);
+    }
+
+    // =====================================================================
+    //  Admin management
+    // =====================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponseDto> getAllUsers(Pageable pageable) {
+        Page<User> users = userRepository.findAll(pageable);
+        return users.map(user -> modelMapper.map(user, UserResponseDto.class));
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) throws UserNotFoundException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "User not found with id : " + userId
+                ));
+
+        // Delete linked entities
+        clientRepository.findByUserId(userId).ifPresent(clientRepository::delete);
+        staffProfileRepository.findByUserId(userId).ifPresent(sp -> {
+            staffDocumentRepository.deleteByStaffProfileId(sp.getId());
+            staffProfileRepository.delete(sp);
+        });
+
+        userRepository.delete(user);
     }
 
     private String generateOtp() {

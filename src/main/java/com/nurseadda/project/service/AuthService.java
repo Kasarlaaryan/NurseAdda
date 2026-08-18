@@ -70,4 +70,28 @@ public interface AuthService {
     StaffProfileResponseDto getStaffProfile(String email) throws UserNotFoundException, ResourceNotFoundException;
 
     Page<StaffProfileResponseDto> getAllStaffProfiles(Pageable pageable);
+
+    // =====================================================================
+    //  Client profile CRUD
+    // =====================================================================
+
+    UserResponseDto getClientProfile(String email) throws UserNotFoundException;
+
+    void deleteClientProfile(String email) throws UserNotFoundException;
+
+    // =====================================================================
+    //  Admin profile
+    // =====================================================================
+
+    UserResponseDto getAdminProfile(String email) throws UserNotFoundException;
+
+    UserResponseDto updateAdminProfile(String email, ClientProfileRequest request) throws UserNotFoundException;
+
+    // =====================================================================
+    //  Admin management
+    // =====================================================================
+
+    Page<UserResponseDto> getAllUsers(Pageable pageable);
+
+    void deleteUser(Long userId) throws UserNotFoundException;
 }

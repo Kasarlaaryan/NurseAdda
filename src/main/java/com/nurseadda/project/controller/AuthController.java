@@ -93,6 +93,63 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    // =====================================================================
+    //  Client profile CRUD
+    // =====================================================================
+
+    @GetMapping("/client-profile")
+    public ResponseEntity<UserResponseDto> getClientProfile(Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(authService.getClientProfile(email));
+    }
+
+    @DeleteMapping("/client-profile")
+    public ResponseEntity<String> deleteClientProfile(Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        authService.deleteClientProfile(email);
+        return ResponseEntity.ok("Client profile deleted successfully");
+    }
+
+    // =====================================================================
+    //  Admin / Super Admin profile
+    // =====================================================================
+
+    @GetMapping("/admin-profile")
+    public ResponseEntity<UserResponseDto> getAdminProfile(Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(authService.getAdminProfile(email));
+    }
+
+    @PutMapping("/admin-profile")
+    public ResponseEntity<UserResponseDto> updateAdminProfile(
+            Authentication authentication,
+            @Valid @RequestBody ClientProfileRequest adminProfileRequest
+    ) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(authService.updateAdminProfile(email, adminProfileRequest));
+    }
+
+    // =====================================================================
+    //  Admin management endpoints
+    // =====================================================================
+
+    @GetMapping("/admin/users")
+    public ResponseEntity<Page<UserResponseDto>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (page < 0) page = 0;
+        if (size < 1) size = 10;
+        if (size > 100) size = 100;
+        return ResponseEntity.ok(authService.getAllUsers(PageRequest.of(page, size)));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<String> deleteUser(@PathVariable Long userId) {
+        authService.deleteUser(userId);
+        return ResponseEntity.ok("User deleted successfully");
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<String> logout(
             HttpServletRequest request,
