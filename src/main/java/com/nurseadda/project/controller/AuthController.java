@@ -1,8 +1,13 @@
 package com.nurseadda.project.controller;
 
+import com.nurseadda.project.dto.request.ChangePasswordRequest;
 import com.nurseadda.project.dto.request.ClientProfileRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
+import com.nurseadda.project.dto.request.ForgotPasswordRequest;
 import com.nurseadda.project.dto.request.LoginRequest;
+import com.nurseadda.project.dto.request.LogoutRequest;
+import com.nurseadda.project.dto.request.RefreshTokenRequest;
+import com.nurseadda.project.dto.request.ResetPasswordRequest;
 import com.nurseadda.project.dto.request.SendOtpRequest;
 import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
@@ -11,7 +16,9 @@ import com.nurseadda.project.dto.request.VerifyOtpRequest;
 import com.nurseadda.project.dto.response.AuthResponseDto;
 import com.nurseadda.project.dto.response.StaffProfileResponseDto;
 import com.nurseadda.project.dto.response.UserResponseDto;
+import com.nurseadda.project.security.JwtUtil;
 import com.nurseadda.project.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +38,7 @@ import java.util.List;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/register-staff")
     public ResponseEntity<String> registerStaff(@Valid @RequestBody StaffRegisterRequest staffRegisterRequest) {
@@ -70,6 +78,119 @@ public class AuthController {
         String email = (String) authentication.getPrincipal();
         UserResponseDto response = authService.updateClientProfile(email, clientProfileRequest);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponseDto> refresh(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+        AuthResponseDto response = authService.refresh(refreshTokenRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDto> getCurrentUser(Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        UserResponseDto response = authService.getCurrentUser(email);
+        return ResponseEntity.ok(response);
+    }
+
+    // =====================================================================
+    //  Client profile CRUD
+    // =====================================================================
+
+    @GetMapping("/client-profile")
+    public ResponseEntity<UserResponseDto> getClientProfile(Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(authService.getClientProfile(email));
+    }
+
+    @DeleteMapping("/client-profile")
+    public ResponseEntity<String> deleteClientProfile(Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        authService.deleteClientProfile(email);
+        return ResponseEntity.ok("Client profile deleted successfully");
+    }
+
+    // =====================================================================
+    //  Admin / Super Admin profile
+    // =====================================================================
+
+    @GetMapping("/admin-profile")
+    public ResponseEntity<UserResponseDto> getAdminProfile(Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(authService.getAdminProfile(email));
+    }
+
+    @PutMapping("/admin-profile")
+    public ResponseEntity<UserResponseDto> updateAdminProfile(
+            Authentication authentication,
+            @Valid @RequestBody ClientProfileRequest adminProfileRequest
+    ) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(authService.updateAdminProfile(email, adminProfileRequest));
+    }
+
+    // =====================================================================
+    //  Admin management endpoints
+    // =====================================================================
+
+    @GetMapping("/admin/users")
+    public ResponseEntity<Page<UserResponseDto>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (page < 0) page = 0;
+        if (size < 1) size = 10;
+        if (size > 100) size = 100;
+        return ResponseEntity.ok(authService.getAllUsers(PageRequest.of(page, size)));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<String> deleteUser(@PathVariable Long userId) {
+        authService.deleteUser(userId);
+        return ResponseEntity.ok("User deleted successfully");
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(
+            HttpServletRequest request,
+            @RequestBody(required = false) LogoutRequest logoutRequest
+    ) {
+        String accessToken = jwtUtil.retrieveTokenFromRequest(request);
+        authService.logout(accessToken, logoutRequest);
+        return ResponseEntity.ok("Logged out successfully");
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<String> resendOtp(@Valid @RequestBody SendOtpRequest sendOtpRequest) {
+        authService.sendOtp(sendOtpRequest);
+        return ResponseEntity.ok("OTP sent to your email");
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequest changePasswordRequest
+    ) {
+        String email = (String) authentication.getPrincipal();
+        authService.changePassword(email, changePasswordRequest);
+        return ResponseEntity.ok("Password changed successfully");
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest) {
+        authService.forgotPassword(forgotPasswordRequest);
+        return ResponseEntity.ok("OTP sent to your email");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
+        authService.resetPassword(resetPasswordRequest);
+        return ResponseEntity.ok("Password reset successfully");
+    }
+
+    @PatchMapping("/users/{userId}/unlock")
+    public ResponseEntity<String> unlockAccount(@PathVariable Long userId) {
+        return ResponseEntity.ok(authService.unlockAccount(userId));
     }
 
     @PutMapping(value = "/staff-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

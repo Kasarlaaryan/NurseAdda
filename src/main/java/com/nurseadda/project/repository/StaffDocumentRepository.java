@@ -17,4 +17,6 @@ public interface StaffDocumentRepository extends JpaRepository<StaffDocument, Lo
     List<StaffDocument> findByStaffProfileIdIn(Collection<Long> staffProfileIds);
 
     void deleteByStaffProfileIdAndDocumentType(Long staffProfileId, StaffDocumentType documentType);
+
+    void deleteByStaffProfileId(Long staffProfileId);
 }

@@ -1,28 +1,39 @@
 package com.nurseadda.project.service.impl;
 
+import com.nurseadda.project.common.exception.IllegalCredentialsException;
 import com.nurseadda.project.common.exception.InvalidOtpException;
+import com.nurseadda.project.common.exception.OtpExpiredException;
 import com.nurseadda.project.common.exception.ResourceNotFoundException;
 import com.nurseadda.project.common.exception.UserAlreadyExistException;
 import com.nurseadda.project.common.exception.UserNotFoundException;
+import com.nurseadda.project.dto.request.ChangePasswordRequest;
 import com.nurseadda.project.dto.request.ClientProfileRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
+import com.nurseadda.project.dto.request.ForgotPasswordRequest;
+import com.nurseadda.project.dto.request.LogoutRequest;
+import com.nurseadda.project.dto.request.RefreshTokenRequest;
+import com.nurseadda.project.dto.request.ResetPasswordRequest;
 import com.nurseadda.project.dto.request.StaffProfileRequest;
 import com.nurseadda.project.dto.request.StaffRegisterRequest;
 import com.nurseadda.project.dto.request.VerifyOtpRequest;
+import com.nurseadda.project.dto.response.AuthResponseDto;
 import com.nurseadda.project.dto.response.StaffProfileResponseDto;
 import com.nurseadda.project.dto.response.UserResponseDto;
-import com.nurseadda.project.enums.Role;
 import com.nurseadda.project.entity.StaffDocument;
 import com.nurseadda.project.entity.StaffProfile;
 import com.nurseadda.project.entity.User;
+import com.nurseadda.project.enums.Role;
 import com.nurseadda.project.enums.StaffDocumentType;
+import com.nurseadda.project.model.PasswordReset;
 import com.nurseadda.project.model.PendingRegistration;
 import com.nurseadda.project.repository.ClientRepository;
+import com.nurseadda.project.repository.PasswordResetRepository;
 import com.nurseadda.project.repository.PendingRegistrationRepository;
 import com.nurseadda.project.repository.StaffDocumentRepository;
 import com.nurseadda.project.repository.StaffProfileRepository;
 import com.nurseadda.project.repository.UserRepository;
 import com.nurseadda.project.security.JwtUtil;
+import com.nurseadda.project.security.TokenBlacklistService;
 import com.nurseadda.project.service.EmailService;
 import com.nurseadda.project.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,8 +62,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -91,6 +102,12 @@ class AuthServiceImplTest {
 
     @Mock
     private StaffDocumentRepository staffDocumentRepository;
+
+    @Mock
+    private TokenBlacklistService tokenBlacklistService;
+
+    @Mock
+    private PasswordResetRepository passwordResetRepository;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -381,6 +398,171 @@ class AuthServiceImplTest {
     }
 
     // =====================================================================
+    //  refresh — POSITIVE
+    // =====================================================================
+
+    @Test
+    @DisplayName("refresh: valid refresh token issues a new token pair and rotates the old one")
+    void refresh_validRefreshToken_rotatesAndReturnsNewTokens() {
+        User user = new User();
+        user.setEmail("riya@test.com");
+
+        when(jwtUtil.retrieveTokenType("old-refresh")).thenReturn(JwtUtil.TYPE_REFRESH);
+        when(jwtUtil.retrieveEmailFromToken("old-refresh")).thenReturn("riya@test.com");
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.of(user));
+        when(jwtUtil.retrieveRemainingValiditySeconds("old-refresh")).thenReturn(600L);
+        when(jwtUtil.generateAccessToken(user)).thenReturn("new-access");
+        when(jwtUtil.generateRefreshToken(user)).thenReturn("new-refresh");
+
+        AuthResponseDto response = authService.refresh(new RefreshTokenRequest("old-refresh"));
+
+        assertThat(response.getAccessToken()).isEqualTo("new-access");
+        assertThat(response.getRefreshToken()).isEqualTo("new-refresh");
+        verify(tokenBlacklistService).blacklist("old-refresh", 600L);
+    }
+
+    // =====================================================================
+    //  refresh — NEGATIVE
+    // =====================================================================
+
+    @Test
+    @DisplayName("refresh: access token used as refresh token is rejected")
+    void refresh_accessToken_rejected() {
+        when(jwtUtil.retrieveTokenType("access-token")).thenReturn(JwtUtil.TYPE_ACCESS);
+
+        assertThatThrownBy(() -> authService.refresh(new RefreshTokenRequest("access-token")))
+                .isInstanceOf(IllegalCredentialsException.class)
+                .hasMessageContaining("Invalid refresh token");
+
+        verify(userRepository, never()).findByEmail(anyString());
+    }
+
+    @Test
+    @DisplayName("refresh: revoked refresh token is rejected")
+    void refresh_revokedRefreshToken_rejected() {
+        when(jwtUtil.retrieveTokenType("old-refresh")).thenReturn(JwtUtil.TYPE_REFRESH);
+        when(jwtUtil.retrieveEmailFromToken("old-refresh")).thenReturn("riya@test.com");
+        when(tokenBlacklistService.isBlacklisted("old-refresh")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.refresh(new RefreshTokenRequest("old-refresh")))
+                .isInstanceOf(IllegalCredentialsException.class)
+                .hasMessageContaining("revoked");
+    }
+
+    @Test
+    @DisplayName("refresh: disabled account is rejected")
+    void refresh_disabledUser_rejected() {
+        User user = new User();
+        user.setEmail("riya@test.com");
+        user.setEnabled(false);
+
+        when(jwtUtil.retrieveTokenType("old-refresh")).thenReturn(JwtUtil.TYPE_REFRESH);
+        when(jwtUtil.retrieveEmailFromToken("old-refresh")).thenReturn("riya@test.com");
+        when(tokenBlacklistService.isBlacklisted("old-refresh")).thenReturn(false);
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.of(user));
+
+        assertThatThrownBy(() -> authService.refresh(new RefreshTokenRequest("old-refresh")))
+                .isInstanceOf(IllegalCredentialsException.class)
+                .hasMessageContaining("disabled");
+
+        verify(tokenBlacklistService, never()).blacklist(anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("refresh: user with revoked/unknown token is rejected with 401 semantics")
+    void refresh_unknownUser_rejected() {
+        when(jwtUtil.retrieveTokenType("old-refresh")).thenReturn(JwtUtil.TYPE_REFRESH);
+        when(jwtUtil.retrieveEmailFromToken("old-refresh")).thenReturn("riya@test.com");
+        when(tokenBlacklistService.isBlacklisted("old-refresh")).thenReturn(false);
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> authService.refresh(new RefreshTokenRequest("old-refresh")))
+                .isInstanceOf(IllegalCredentialsException.class);
+    }
+
+    // =====================================================================
+    //  getCurrentUser
+    // =====================================================================
+
+    @Test
+    @DisplayName("getCurrentUser: returns the mapped user dto")
+    void getCurrentUser_existingUser_returnsDto() {
+        User user = new User();
+        user.setEmail("riya@test.com");
+        UserResponseDto dto = UserResponseDto.builder().email("riya@test.com").build();
+
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.of(user));
+        when(modelMapper.map(user, UserResponseDto.class)).thenReturn(dto);
+
+        UserResponseDto result = authService.getCurrentUser("riya@test.com");
+
+        assertThat(result.getEmail()).isEqualTo("riya@test.com");
+    }
+
+    @Test
+    @DisplayName("getCurrentUser: missing user throws UserNotFoundException")
+    void getCurrentUser_missingUser_throws() {
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> authService.getCurrentUser("riya@test.com"))
+                .isInstanceOf(UserNotFoundException.class);
+    }
+
+    // =====================================================================
+    //  logout
+    // =====================================================================
+
+    @Test
+    @DisplayName("logout: blacklists access token and optional refresh token")
+    void logout_blacklistsTokens() {
+        when(jwtUtil.retrieveRemainingValiditySeconds("access-token")).thenReturn(900L);
+        when(jwtUtil.retrieveRemainingValiditySeconds("refresh-token")).thenReturn(6000L);
+
+        authService.logout("access-token", new LogoutRequest("refresh-token"));
+
+        verify(tokenBlacklistService).blacklist("access-token", 900L);
+        verify(tokenBlacklistService).blacklist("refresh-token", 6000L);
+    }
+
+    // =====================================================================
+    //  changePassword
+    // =====================================================================
+
+    @Test
+    @DisplayName("changePassword: correct current password updates to new password")
+    void changePassword_correctCurrentPassword_updatesPassword() {
+        User user = new User();
+        user.setPassword("$2a$10$encodedHash");
+
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.of(user));
+        when(passwordEncoder.matches("old-pass", "$2a$10$encodedHash")).thenReturn(true);
+        when(passwordEncoder.encode("new-pass-123")).thenReturn("$2a$10$newHash");
+
+        authService.changePassword("riya@test.com",
+                new ChangePasswordRequest("old-pass", "new-pass-123"));
+
+        verify(userRepository).save(user);
+        assertThat(user.getPassword()).isEqualTo("$2a$10$newHash");
+    }
+
+    @Test
+    @DisplayName("changePassword: wrong current password throws IllegalCredentialsException")
+    void changePassword_wrongCurrentPassword_throws() {
+        User user = new User();
+        user.setPassword("$2a$10$encodedHash");
+
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.of(user));
+        when(passwordEncoder.matches("wrong", "$2a$10$encodedHash")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.changePassword("riya@test.com",
+                new ChangePasswordRequest("wrong", "new-pass-123")))
+                .isInstanceOf(IllegalCredentialsException.class)
+                .hasMessageContaining("Current password is incorrect");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    // =====================================================================
     //  updateClientProfile
     // =====================================================================
 
@@ -452,6 +634,138 @@ class AuthServiceImplTest {
                 .hasMessageContaining("nobody@test.com");
 
         verify(userRepository, never()).save(any());
+    }
+
+    // =====================================================================
+    //  forgotPassword
+    // =====================================================================
+
+    @Test
+    @DisplayName("forgotPassword: saves reset request and emails the OTP")
+    void forgotPassword_existingUser_savesAndEmails() {
+        User user = new User();
+        user.setEmail("riya@test.com");
+
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.of(user));
+
+        authService.forgotPassword(new ForgotPasswordRequest("riya@test.com"));
+
+        ArgumentCaptor<PasswordReset> captor = ArgumentCaptor.forClass(PasswordReset.class);
+        verify(passwordResetRepository).save(captor.capture(), eq(10L));
+
+        PasswordReset reset = captor.getValue();
+        assertThat(reset.getEmail()).isEqualTo("riya@test.com");
+        assertThat(reset.getCode()).matches("^[0-9]{6}$");
+        assertThat(reset.getExpiresAt()).isAfter(LocalDateTime.now());
+
+        verify(emailService).sendOtp(eq("riya@test.com"), anyString());
+    }
+
+    @Test
+    @DisplayName("forgotPassword: unknown email throws UserNotFoundException")
+    void forgotPassword_unknownEmail_throws() {
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> authService.forgotPassword(new ForgotPasswordRequest("riya@test.com")))
+                .isInstanceOf(UserNotFoundException.class);
+
+        verify(passwordResetRepository, never()).save(any(), anyLong());
+    }
+
+    // =====================================================================
+    //  resetPassword
+    // =====================================================================
+
+    @Test
+    @DisplayName("resetPassword: valid OTP resets the password and consumes the code")
+    void resetPassword_validOtp_resetsPassword() {
+        PasswordReset reset = PasswordReset.builder()
+                .email("riya@test.com")
+                .code("123456")
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+        User user = new User();
+        user.setEmail("riya@test.com");
+
+        when(passwordResetRepository.findByEmail("riya@test.com"))
+                .thenReturn(java.util.Optional.of(reset));
+        when(userRepository.findByEmail("riya@test.com")).thenReturn(java.util.Optional.of(user));
+        when(passwordEncoder.encode("new-pass-123")).thenReturn("$2a$10$newHash");
+
+        authService.resetPassword(new ResetPasswordRequest("riya@test.com", "123456", "new-pass-123"));
+
+        verify(userRepository).save(user);
+        verify(passwordResetRepository).deleteByEmail("riya@test.com");
+        assertThat(user.getPassword()).isEqualTo("$2a$10$newHash");
+    }
+
+    @Test
+    @DisplayName("resetPassword: wrong OTP throws InvalidOtpException")
+    void resetPassword_wrongOtp_throws() {
+        PasswordReset reset = PasswordReset.builder()
+                .email("riya@test.com")
+                .code("123456")
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+
+        when(passwordResetRepository.findByEmail("riya@test.com"))
+                .thenReturn(java.util.Optional.of(reset));
+
+        assertThatThrownBy(() -> authService.resetPassword(
+                new ResetPasswordRequest("riya@test.com", "999999", "new-pass-123")))
+                .isInstanceOf(InvalidOtpException.class);
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("resetPassword: expired OTP throws OtpExpiredException and removes the request")
+    void resetPassword_expiredOtp_throws() {
+        PasswordReset reset = PasswordReset.builder()
+                .email("riya@test.com")
+                .code("123456")
+                .expiresAt(LocalDateTime.now().minusMinutes(1))
+                .build();
+
+        when(passwordResetRepository.findByEmail("riya@test.com"))
+                .thenReturn(java.util.Optional.of(reset));
+
+        assertThatThrownBy(() -> authService.resetPassword(
+                new ResetPasswordRequest("riya@test.com", "123456", "new-pass-123")))
+                .isInstanceOf(OtpExpiredException.class);
+
+        verify(passwordResetRepository).deleteByEmail("riya@test.com");
+    }
+
+    // =====================================================================
+    //  unlockAccount
+    // =====================================================================
+
+    @Test
+    @DisplayName("unlockAccount: resets failed attempts and clears the lock")
+    void unlockAccount_existingUser_clearsLock() {
+        User user = new User();
+        user.setId(7L);
+        user.setFailedLoginAttempts(5);
+        user.setLockedUntil(LocalDateTime.now().plusMinutes(30));
+
+        when(userRepository.findById(7L)).thenReturn(java.util.Optional.of(user));
+
+        String message = authService.unlockAccount(7L);
+
+        assertThat(message).isEqualTo("Account unlocked successfully");
+        assertThat(user.getFailedLoginAttempts()).isZero();
+        assertThat(user.getLockedUntil()).isNull();
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("unlockAccount: missing user throws UserNotFoundException")
+    void unlockAccount_missingUser_throws() {
+        when(userRepository.findById(7L)).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> authService.unlockAccount(7L))
+                .isInstanceOf(UserNotFoundException.class);
     }
 
     // =====================================================================
