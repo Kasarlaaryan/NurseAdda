@@ -6,6 +6,7 @@ import com.nurseadda.project.common.exception.OtpExpiredException;
 import com.nurseadda.project.common.exception.ResourceNotFoundException;
 import com.nurseadda.project.common.exception.UserAlreadyExistException;
 import com.nurseadda.project.common.exception.UserNotFoundException;
+import com.nurseadda.project.dto.request.AdminRegisterRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
 import com.nurseadda.project.dto.request.LoginRequest;
 import com.nurseadda.project.dto.request.SendOtpRequest;
@@ -25,6 +26,8 @@ public interface AuthService {
     String registerStaff(StaffRegisterRequest staffRegisterRequest) throws UserAlreadyExistException;
 
     String registerClient(ClientRegisterRequest clientRegisterRequest) throws UserAlreadyExistException;
+
+    String registerAdmin(AdminRegisterRequest adminRegisterRequest) throws UserAlreadyExistException;
 
     AuthResponseDto login(LoginRequest loginRequest) throws IllegalCredentialsException, UserNotFoundException;
 

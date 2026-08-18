@@ -6,6 +6,7 @@ import com.nurseadda.project.common.exception.OtpExpiredException;
 import com.nurseadda.project.common.exception.ResourceNotFoundException;
 import com.nurseadda.project.common.exception.UserAlreadyExistException;
 import com.nurseadda.project.common.exception.UserNotFoundException;
+import com.nurseadda.project.dto.request.AdminRegisterRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
 import com.nurseadda.project.dto.request.LoginRequest;
 import com.nurseadda.project.dto.request.SendOtpRequest;
@@ -73,6 +74,12 @@ public class AuthServiceImpl implements AuthService {
     @Value("${app.upload.dir}")
     private String uploadDir;
 
+    @Value("${security.login.max-attempts}")
+    private int securityLoginMaxAttempts;
+
+    @Value("${security.login.lock-duration-minutes}")
+    private int securityLoginLockDurationMinutes;
+
     @Override
     public String registerStaff(StaffRegisterRequest staffRegisterRequest) throws UserAlreadyExistException {
         if (userService.existsByEmail(staffRegisterRequest.getEmail())) {
@@ -134,13 +141,70 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    public String registerAdmin(AdminRegisterRequest adminRegisterRequest) throws UserAlreadyExistException {
+        if (userService.existsByEmail(adminRegisterRequest.getEmail())) {
+            throw new UserAlreadyExistException(
+                    "User already exists with email : " + adminRegisterRequest.getEmail()
+            );
+        }
+
+        if (!adminRegisterRequest.getPassword().equals(adminRegisterRequest.getConfirmPassword())) {
+            throw new IllegalArgumentException("Passwords do not match");
+        }
+
+        Role role = adminRegisterRequest.getAdminType() == AdminRegisterRequest.AdminType.SUPER_ADMIN
+                ? Role.ROLE_SUPER_ADMIN : Role.ROLE_ADMIN;
+
+        User user = new User();
+        user.setEmail(adminRegisterRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(adminRegisterRequest.getPassword()));
+        user.setFirstName(adminRegisterRequest.getFirstName());
+        user.setLastName(adminRegisterRequest.getLastName());
+        user.setPhone(adminRegisterRequest.getPhone());
+        user.setRole(role);
+        user.setEmailVerified(true);
+
+        userRepository.save(user);
+
+        return "Admin registered successfully";
+    }
+
+    @Override
+    @Transactional
     public AuthResponseDto login(LoginRequest loginRequest) throws IllegalCredentialsException, UserNotFoundException {
         User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new IllegalCredentialsException("Incorrect Login Details"));
 
+        // Check if account is locked
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+            throw new IllegalCredentialsException(
+                    "Account is locked. Try again after " + user.getLockedUntil()
+            );
+        }
+
+        // Check if account is disabled
+        if (!user.isEnabled()) {
+            throw new IllegalCredentialsException("Account is disabled. Please contact an administrator");
+        }
+
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            // Increment failed attempts
+            int newAttempts = user.getFailedLoginAttempts() + 1;
+            user.setFailedLoginAttempts(newAttempts);
+
+            if (newAttempts >= securityLoginMaxAttempts) {
+                user.setLockedUntil(LocalDateTime.now().plusMinutes(securityLoginLockDurationMinutes));
+                user.setFailedLoginAttempts(0);
+            }
+
+            userRepository.save(user);
             throw new IllegalCredentialsException("Invalid email or password");
         }
+
+        // Successful login — reset failed attempts
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
+        userRepository.save(user);
 
         String accessToken = jwtUtil.generateAccessToken(user);
         String refreshToken = jwtUtil.generateRefreshToken(user);

@@ -47,6 +47,9 @@ security:
     lock-duration-minutes: 30
 
 app:
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:5173,http://user.localhost:3000,http://staff.localhost:3000,http://admin.localhost:3000
+
   otp:
     length: 6
     expiry-minutes: 10

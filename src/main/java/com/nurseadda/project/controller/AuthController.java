@@ -1,5 +1,6 @@
 package com.nurseadda.project.controller;
 
+import com.nurseadda.project.dto.request.AdminRegisterRequest;
 import com.nurseadda.project.dto.request.ClientRegisterRequest;
 import com.nurseadda.project.dto.request.LoginRequest;
 import com.nurseadda.project.dto.request.SendOtpRequest;
@@ -38,6 +39,12 @@ public class AuthController {
     @PostMapping("/register-client")
     public ResponseEntity<String> registerClient(@Valid @RequestBody ClientRegisterRequest clientRegisterRequest) {
         String message = authService.registerClient(clientRegisterRequest);
+        return ResponseEntity.status(HttpStatus.OK).body(message);
+    }
+
+    @PostMapping("/register-admin")
+    public ResponseEntity<String> registerAdmin(@Valid @RequestBody AdminRegisterRequest adminRegisterRequest) {
+        String message = authService.registerAdmin(adminRegisterRequest);
         return ResponseEntity.status(HttpStatus.OK).body(message);
     }
 
