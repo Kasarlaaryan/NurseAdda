@@ -518,6 +518,11 @@ public class AuthServiceImpl implements AuthService {
             staffProfile.setLicenseRenewalDate(staffProfileRequest.getLicenseRenewalDate());
         }
 
+        if (staffProfileRequest.getLocation() != null
+                && !staffProfileRequest.getLocation().isBlank()) {
+            staffProfile.setLocation(staffProfileRequest.getLocation());
+        }
+
         // State board certificate: replace any existing one
         if (stateBoardCertificate != null && !stateBoardCertificate.isEmpty()) {
             staffDocumentRepository.deleteByStaffProfileIdAndDocumentType(

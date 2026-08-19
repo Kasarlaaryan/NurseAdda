@@ -18,6 +18,8 @@ public class StaffProfileRequest {
     )
     private String aadharCardNumber;
 
+    private String location;
+
     private LocalDate licenseValidityDate;
 
     private LocalDate licenseRenewalDate;
