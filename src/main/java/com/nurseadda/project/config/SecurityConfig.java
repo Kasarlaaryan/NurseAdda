@@ -36,8 +36,9 @@ public class SecurityConfig {
                                 "/api/auth/reset-password",
                                 "/uploads/**"
                         ).permitAll()
-.requestMatchers(HttpMethod.PATCH, "/api/auth/users/*/unlock")
-                        .hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Auth profile endpoints - role-based
+                        .requestMatchers(HttpMethod.PATCH, "/api/auth/users/*/unlock")
+                                .hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/api/auth/staff", "/api/auth/staff/*/verification").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/auth/client-profile").hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/auth/client-profile").hasRole("USER")
@@ -48,6 +49,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/auth/admin-profile").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/auth/admin/users").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/auth/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Assignment endpoints - role-based
+                        .requestMatchers(HttpMethod.POST, "/api/assignments").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/assignments").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/assignments/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/assignments/**").authenticated()
+                        // Staffing request endpoints - role-based
+                        .requestMatchers(HttpMethod.POST, "/api/staffing-requests").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/staffing-requests").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/staffing-requests/**").authenticated()
+                        // Attendance endpoints - staff only
+                        .requestMatchers(HttpMethod.POST, "/api/attendance/**").hasRole("STAFF")
+                        .requestMatchers(HttpMethod.GET, "/api/attendance/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
