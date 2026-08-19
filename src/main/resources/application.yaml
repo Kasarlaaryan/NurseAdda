@@ -46,6 +46,10 @@ security:
     max-attempts: 5
     lock-duration-minutes: 30
 
+razorpay:
+  key.id: ${RAZORPAY_KEY_ID:}
+  key.secret: ${RAZORPAY_KEY_SECRET:}
+
 app:
   cors:
     allowed-origins: http://localhost:3000,http://localhost:5173,http://user.localhost:3000,http://staff.localhost:3000,http://admin.localhost:3000
