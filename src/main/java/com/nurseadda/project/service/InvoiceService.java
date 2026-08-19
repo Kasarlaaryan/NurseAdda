@@ -5,6 +5,7 @@ import com.nurseadda.project.dto.response.BillingSummaryResponse;
 import com.nurseadda.project.dto.response.InvoiceResponse;
 import com.nurseadda.project.dto.response.PaymentResponse;
 import com.nurseadda.project.dto.response.RateConfigResponse;
+import com.nurseadda.project.entity.Invoice;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ public interface InvoiceService {
     List<InvoiceResponse> getAllInvoices();
     InvoiceResponse updateInvoiceStatus(Long invoiceId, String status);
     InvoiceResponse getInvoiceById(Long invoiceId);
+    Invoice getInvoiceEntityById(Long invoiceId);
     PaymentResponse generatePayment(Long attendanceId);
     List<PaymentResponse> getStaffPayments(String staffEmail);
     List<PaymentResponse> getAllPayments();

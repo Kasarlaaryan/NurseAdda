@@ -5,15 +5,21 @@ import com.nurseadda.project.dto.response.BillingSummaryResponse;
 import com.nurseadda.project.dto.response.InvoiceResponse;
 import com.nurseadda.project.dto.response.PaymentResponse;
 import com.nurseadda.project.dto.response.RateConfigResponse;
+import com.nurseadda.project.entity.Invoice;
+import com.nurseadda.project.service.InvoicePdfService;
 import com.nurseadda.project.service.InvoiceService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 @RestController
@@ -22,6 +28,7 @@ import java.util.List;
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
+    private final InvoicePdfService invoicePdfService;
 
     @PostMapping("/rates")
     public ResponseEntity<RateConfigResponse> createOrUpdateRate(@Valid @RequestBody RateConfigRequest request) {
@@ -53,6 +60,17 @@ public class InvoiceController {
     @GetMapping("/invoices/{id}")
     public ResponseEntity<InvoiceResponse> getInvoiceById(@PathVariable Long id) {
         return ResponseEntity.ok(invoiceService.getInvoiceById(id));
+    }
+
+    @GetMapping("/invoices/{id}/pdf")
+    public void downloadInvoicePdf(@PathVariable Long id, HttpServletResponse response) throws Exception {
+        Invoice invoice = invoiceService.getInvoiceEntityById(id);
+        ByteArrayOutputStream pdfStream = invoicePdfService.generateInvoicePdf(invoice);
+
+        response.setContentType("application/pdf");
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=invoice-" + String.format("%06d", id) + ".pdf");
+        response.getOutputStream().write(pdfStream.toByteArray());
+        response.getOutputStream().flush();
     }
 
     @PatchMapping("/invoices/{id}/status")
