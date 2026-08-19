@@ -127,6 +127,7 @@ Java 15 introduced multiline string literals
                 || path.equals("/api/auth/refresh")
                 || path.equals("/api/auth/forgot-password")
                 || path.equals("/api/auth/reset-password")
+                || path.equals("/api/auth/register-admin")
                 || path.startsWith("/uploads/");
     }
 

@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/auth/admin-profile").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/auth/admin/users").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/auth/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register-admin").permitAll()
                         // Assignment endpoints - role-based
                         .requestMatchers(HttpMethod.POST, "/api/assignments").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/assignments").authenticated()
@@ -61,6 +62,21 @@ public class SecurityConfig {
                         // Attendance endpoints - staff only
                         .requestMatchers(HttpMethod.POST, "/api/attendance/**").hasRole("STAFF")
                         .requestMatchers(HttpMethod.GET, "/api/attendance/**").authenticated()
+                        // Rate config - admin only
+                        .requestMatchers(HttpMethod.POST, "/api/rates").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/rates").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/rates/**").authenticated()
+                        // Invoice endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/invoices/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/invoices").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/invoices/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/invoices/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Payment endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/payments/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/payments").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/payments/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Billing summary - admin only
+                        .requestMatchers(HttpMethod.GET, "/api/billing/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
