@@ -21,6 +21,9 @@ public class StaffProfile {
     @Column(nullable = false, length = 100)
     private String staffCategory;
 
+    @Column(length = 200)
+    private String location;
+
     @Column(length = 12)
     private String aadharCardNumber;
 

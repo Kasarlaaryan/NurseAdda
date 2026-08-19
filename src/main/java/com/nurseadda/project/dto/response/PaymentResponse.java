@@ -22,6 +22,8 @@ public class PaymentResponse {
     private BigDecimal overtimeAmount;
     private BigDecimal totalAmount;
     private String status;
+    private String razorpayOrderId;
+    private String razorpayPaymentId;
     private String notes;
     private LocalDateTime createdAt;
 }

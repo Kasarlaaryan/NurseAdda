@@ -24,6 +24,8 @@ public class AssignmentResponse {
     private String assignedByName;
     private AssignmentStatus status;
     private String notes;
+    private boolean sentToClient;
+    private LocalDateTime sentToClientAt;
     private LocalDateTime acceptedAt;
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;

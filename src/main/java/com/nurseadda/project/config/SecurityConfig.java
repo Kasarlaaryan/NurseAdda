@@ -52,11 +52,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/register-admin").permitAll()
                         // Assignment endpoints - role-based
                         .requestMatchers(HttpMethod.POST, "/api/assignments").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/assignments/**/approve-to-client").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/assignments").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/assignments/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/assignments/**").authenticated()
                         // Staffing request endpoints - role-based
                         .requestMatchers(HttpMethod.POST, "/api/staffing-requests").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/staffing-requests/*/pay-advance").hasRole("USER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/staffing-requests/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/staffing-requests/pending").hasRole("STAFF")
+                        .requestMatchers(HttpMethod.POST, "/api/staffing-requests/*/accept").hasRole("STAFF")
                         .requestMatchers(HttpMethod.GET, "/api/staffing-requests").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/staffing-requests/**").authenticated()
                         // Attendance endpoints - staff only
@@ -71,10 +76,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/invoices").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/invoices/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/invoices/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        // Payment endpoints
+                        // Payment record endpoints (admin-managed)
                         .requestMatchers(HttpMethod.POST, "/api/payments/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/payments").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/payments/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Razorpay payment gateway endpoints
+                        .requestMatchers("/api/payment-gateway/**").authenticated()
                         // Billing summary - admin only
                         .requestMatchers(HttpMethod.GET, "/api/billing/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .anyRequest().authenticated()

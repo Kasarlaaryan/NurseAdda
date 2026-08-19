@@ -11,7 +11,9 @@ import com.nurseadda.project.entity.User;
 import com.nurseadda.project.enums.AssignmentStatus;
 import com.nurseadda.project.repository.*;
 import com.nurseadda.project.service.AttendanceService;
+import com.nurseadda.project.service.InvoiceService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AttendanceServiceImpl implements AttendanceService {
@@ -30,6 +33,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final StaffProfileRepository staffProfileRepository;
     private final AssignmentRepository assignmentRepository;
     private final AttendanceRepository attendanceRepository;
+    private final InvoiceService invoiceService;
 
     @Override
     @Transactional
@@ -108,6 +112,22 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
 
         attendance = attendanceRepository.save(attendance);
+
+        // Auto-generate invoice and payment after checkout
+        try {
+            invoiceService.generateInvoice(attendance.getId());
+            log.info("Auto-generated invoice for attendance {}", attendance.getId());
+        } catch (Exception e) {
+            log.error("Failed to auto-generate invoice for attendance {}: {}", attendance.getId(), e.getMessage());
+        }
+
+        try {
+            invoiceService.generatePayment(attendance.getId());
+            log.info("Auto-generated payment for attendance {}", attendance.getId());
+        } catch (Exception e) {
+            log.error("Failed to auto-generate payment for attendance {}: {}", attendance.getId(), e.getMessage());
+        }
+
         return mapToResponse(attendance);
     }
 
