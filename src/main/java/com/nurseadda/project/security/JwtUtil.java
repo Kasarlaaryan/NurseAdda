@@ -21,7 +21,11 @@ public class JwtUtil {
 
     private static final String ROLE_TAG = "role";
     private static final String ISSUED_DATE_TAG = "issued-date";
+    private static final String TOKEN_TYPE_TAG = "type";
     private static final String TOKEN_ISSUER = "NurseAdda";
+
+    public static final String TYPE_ACCESS = "access";
+    public static final String TYPE_REFRESH = "refresh";
 
     @Value("${jwt.validity.accessToken}")
     private Long ACCESS_TOKEN_VALIDITY_DURATION;
@@ -38,6 +42,7 @@ public class JwtUtil {
                 .withSubject(user.getEmail())
                 .withExpiresAt(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY_DURATION))
                 .withIssuer(TOKEN_ISSUER)
+                .withClaim(TOKEN_TYPE_TAG, TYPE_ACCESS)
                 .withClaim(ROLE_TAG, user.getAuthorities().stream().map(Object::toString).toList())
                 .sign(algorithm);
     }
@@ -48,6 +53,7 @@ public class JwtUtil {
                 .withSubject(user.getEmail())
                 .withExpiresAt(new Date(System.currentTimeMillis() + REFRESH_TOKEN_VALIDITY_DURATION))
                 .withIssuer(TOKEN_ISSUER)
+                .withClaim(TOKEN_TYPE_TAG, TYPE_REFRESH)
                 .withClaim(ISSUED_DATE_TAG, new Date())
                 .withClaim(ROLE_TAG, user.getAuthorities().stream().map(Object::toString).toList())
                 .sign(algorithm);
@@ -73,6 +79,24 @@ public class JwtUtil {
 
     public List<String> retrieveRolesFromToken(String token) throws JWTVerificationException {
         return getDecodedToken(token).getClaim(ROLE_TAG).asList(String.class);
+    }
+
+    public String retrieveTokenType(String token) throws JWTVerificationException {
+        return getDecodedToken(token).getClaim(TOKEN_TYPE_TAG).asString();
+    }
+
+    /**
+     * Remaining lifetime of the token in seconds, used to bound how long a
+     * revoked token stays blacklisted. Returns 0 for expired/invalid tokens.
+     */
+    public long retrieveRemainingValiditySeconds(String token) {
+        try {
+            long remainingMillis =
+                    getDecodedToken(token).getExpiresAt().getTime() - System.currentTimeMillis();
+            return Math.max(0, remainingMillis / 1000);
+        } catch (JWTVerificationException e) {
+            return 0;
+        }
     }
 
 }

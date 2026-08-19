@@ -2,27 +2,70 @@
 
 ## Authentication
 
-POST /api/auth/register/staff   (fullName, email, phone, staffCategory, password)
+POST /api/auth/register-staff  (fullName, email, phone, staffCategory, password)
 
-POST /api/auth/register/client  (email, password, phone)
+POST /api/auth/register-client (firstName, lastName, email, mobileNumber, password, confirmPassword)
 
-POST /api/auth/login
+PUT  /api/auth/client-profile   (self-service: update own profile - body: { firstName, lastName, mobileNumber })
 
-POST /api/auth/logout
+PUT  /api/auth/staff-profile    (staff: multipart - parts: profile JSON { aadharCardNumber, licenseValidityDate,
+                              licenseRenewalDate } + stateBoardCertificate (single file) + educationalDocuments[] + photos[])
+
+GET  /api/auth/staff-profile    (staff: view own profile - includes verified flag for the green tick)
+
+GET  /api/auth/staff                     (admin/super admin: paginated list of staff profiles with documents +
+                              verified status; query params page (default 0) and size (default 10, max 100);
+                              returns { content: [...], totalElements, totalPages, number, size, ... } and each
+                              item includes firstName, lastName, email, phone so the admin can identify who
+                              they are reviewing)
+
+PATCH /api/auth/staff/{userId}/verification   (admin/super admin: approve or reject staff - body: { "verified": true|false };
+                              sends a 'profile verified' email to the staff when verified=true, and a
+                              'profile not verified' (rejection) email when verified=false)
+
+POST /api/auth/login           (email, password) -> accessToken, refreshToken, user
 
 ## Email OTP verification
 
 Every newly registered account (staff or client) starts UNVERIFIED. The
 register endpoints auto-send a 6-digit OTP to the user's email and return
-no tokens (`accessToken`/`refreshToken` are null, `emailVerified` is
-false). The user must prove ownership of the email before the account is
+no tokens. The user must prove ownership of the email before the account is
 usable:
 
-POST /api/auth/otp/verify   (email, otp) -> marks emailVerified=true, returns
-                            fresh access + refresh tokens
+POST /api/auth/verify-otp  (email, otp) -> marks emailVerified=true, returns
+                           fresh access + refresh tokens
 
-POST /api/auth/otp/resend   (email) -> generates a new OTP and emails it
-                            (use when the original expired or never arrived)
+POST /api/auth/resend-otp  (email) -> generates a new OTP and emails it
+                           (use when the original expired or never arrived)
+
+## Session management
+
+POST /api/auth/refresh          (refreshToken) -> rotates the refresh token
+                            and returns a fresh access + refresh token pair.
+                            Revoked/expired refresh tokens are rejected with 401.
+
+POST /api/auth/logout           (optional body: refreshToken) -> blacklists the
+                            access token (from the Authorization header) and,
+                            if provided, the refresh token in Redis. Blacklisted
+                            tokens are rejected by the JWT filter until they
+                            naturally expire.
+
+GET  /api/auth/me               (authenticated) -> returns the current user
+                            mapped from the JWT subject.
+
+## Password management
+
+POST /api/auth/change-password  (authenticated, currentPassword, newPassword) ->
+                            verifies the current password and updates it.
+
+POST /api/auth/forgot-password  (email) -> emails a 6-digit OTP to reset the
+                            password (Redis-backed, expires after 10 minutes).
+
+POST /api/auth/reset-password   (email, otp, newPassword) -> verifies the OTP
+                            and sets the new password. The OTP is single-use.
+
+PATCH /api/auth/users/{userId}/unlock  (ADMIN/SUPER_ADMIN) -> unlocks a locked
+                            account and resets its failed-login counter.
 
 Login is BLOCKED (401 "Please verify your email address using the OTP sent
 to you") until `emailVerified` is true. OTPs expire after 10 minutes
@@ -72,23 +115,7 @@ PUT /api/staff/{id}
 
 DELETE /api/staff/{id}
 
-PUT /api/staff/profile          (self-service: complete own profile)
-
-GET /api/staff/profile          (self-service: view own profile)
-
 PATCH /api/staff/{userId}/verification   (admin: approve/reject staff - body: { "verified": true|false })
-
-POST /api/staff/documents       (staff: multipart upload - documentType + file)
-
-GET /api/staff/documents        (staff: list own documents)
-
-GET /api/staff/documents/{id}/download   (staff: download own document)
-
-DELETE /api/staff/documents/{id}        (staff: delete own document)
-
-GET /api/staff/{userId}/documents       (admin: list a staff user's documents)
-
-GET /api/staff/{userId}/documents/{id}/download   (admin: download a staff user's document)
 
 ---
 
