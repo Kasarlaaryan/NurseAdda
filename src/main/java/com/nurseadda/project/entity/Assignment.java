@@ -36,6 +36,10 @@ public class Assignment {
     @Column(length = 500)
     private String notes;
 
+    private boolean sentToClient = false;
+
+    private LocalDateTime sentToClientAt;
+
     private LocalDateTime acceptedAt;
 
     private LocalDateTime completedAt;
