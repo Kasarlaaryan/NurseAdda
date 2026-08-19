@@ -88,7 +88,13 @@ public class InvoiceServiceImpl implements InvoiceService {
         invoice.setClientHourlyRate(rateConfig.getClientHourlyRate());
         invoice.setBaseAmount(baseAmount);
         invoice.setOvertimeAmount(overtimeAmount);
-        invoice.setTotalAmount(baseAmount.add(overtimeAmount));
+
+        // Calculate remaining amount after advance payment
+        BigDecimal totalAmount = baseAmount.add(overtimeAmount);
+        BigDecimal advancePaid = assignment.getStaffingRequest().getAdvanceAmount() != null
+                ? assignment.getStaffingRequest().getAdvanceAmount() : BigDecimal.ZERO;
+        BigDecimal remainingAmount = totalAmount.subtract(advancePaid).max(BigDecimal.ZERO);
+        invoice.setTotalAmount(remainingAmount);
         invoice.setStatus("PENDING");
 
         return mapToInvoiceResponse(invoiceRepository.save(invoice));
@@ -156,6 +162,11 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     public InvoiceResponse getInvoiceById(Long invoiceId) {
         return mapToInvoiceResponse(invoiceRepository.findById(invoiceId).orElseThrow(() -> new ResourceNotFoundException("Invoice not found")));
+    }
+
+    @Override
+    public Invoice getInvoiceEntityById(Long invoiceId) {
+        return invoiceRepository.findById(invoiceId).orElseThrow(() -> new ResourceNotFoundException("Invoice not found"));
     }
 
     @Override
@@ -230,6 +241,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         r.setOvertimeAmount(p.getOvertimeAmount());
         r.setTotalAmount(p.getTotalAmount());
         r.setStatus(p.getStatus());
+        r.setRazorpayOrderId(p.getRazorpayOrderId());
+        r.setRazorpayPaymentId(p.getRazorpayPaymentId());
         r.setNotes(p.getNotes());
         r.setCreatedAt(p.getCreatedAt());
         return r;

@@ -46,6 +46,15 @@ public class Payment {
     @Column(nullable = false, length = 20)
     private String status = "PENDING";
 
+    @Column(length = 100)
+    private String razorpayOrderId;
+
+    @Column(length = 100)
+    private String razorpayPaymentId;
+
+    @Column(length = 256)
+    private String razorpaySignature;
+
     @Column(length = 500)
     private String notes;
 
