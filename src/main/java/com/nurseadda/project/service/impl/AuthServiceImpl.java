@@ -597,6 +597,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional(readOnly = true)
+    public StaffProfileResponseDto getStaffProfileById(Long id) throws ResourceNotFoundException {
+        StaffProfile staffProfile = staffProfileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Staff profile not found with id: " + id
+                ));
+        return buildStaffProfileResponse(staffProfile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public StaffProfileResponseDto getStaffProfile(String email) throws UserNotFoundException, ResourceNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException(

@@ -74,6 +74,8 @@ public interface AuthService {
 
     Page<StaffProfileResponseDto> getAllStaffProfiles(Pageable pageable);
 
+    StaffProfileResponseDto getStaffProfileById(Long id) throws ResourceNotFoundException;
+
     // =====================================================================
     //  Client profile CRUD
     // =====================================================================

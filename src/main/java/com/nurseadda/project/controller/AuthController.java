@@ -230,6 +230,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.getStaffProfile(email));
     }
 
+    @GetMapping("/staff/{id}")
+    public ResponseEntity<StaffProfileResponseDto> getStaffProfileById(@PathVariable Long id) {
+        return ResponseEntity.ok(authService.getStaffProfileById(id));
+    }
+
     @GetMapping("/staff")
     public ResponseEntity<Page<StaffProfileResponseDto>> getAllStaffProfiles(
             @RequestParam(defaultValue = "0") int page,
