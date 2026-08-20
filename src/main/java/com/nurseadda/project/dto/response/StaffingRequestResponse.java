@@ -18,6 +18,7 @@ public class StaffingRequestResponse {
     private String clientName;
     private String designation;
     private String location;
+    private String requestType;
     private String shift;
     private LocalDate startDate;
     private LocalDate endDate;

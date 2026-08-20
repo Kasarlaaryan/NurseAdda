@@ -93,4 +93,63 @@ public class EmailServiceImpl implements EmailService {
             log.error("Failed to send profile rejected email to {} : {}", to, e.getMessage());
         }
     }
+
+    @Override
+    public void sendAssignmentAcceptedEmail(String adminEmail, String staffName, String designation, String location) {
+        if (resend == null) {
+            log.info("No RESEND_API_KEY configured - assignment accepted notification to admin {} : staff={}, designation={}, location={}",
+                    adminEmail, staffName, designation, location);
+            return;
+        }
+
+        try {
+            CreateEmailOptions email = CreateEmailOptions.builder()
+                    .from(from)
+                    .to(adminEmail)
+                    .subject("NurseAdda - Staff Accepted Assignment")
+                    .html("<p>Hi Admin,</p>"
+                            + "<p><b>" + staffName + "</b> has accepted a staffing request.</p>"
+                            + "<p><b>Details:</b></p>"
+                            + "<ul>"
+                            + "<li>Designation: " + designation + "</li>"
+                            + "<li>Location: " + location + "</li>"
+                            + "</ul>"
+                            + "<p>Please review and approve the staff details to send them to the client.</p>")
+                    .build();
+            resend.emails().send(email);
+            log.info("Assignment accepted email sent to admin {}", adminEmail);
+        } catch (Exception e) {
+            log.error("Failed to send assignment accepted email to {} : {}", adminEmail, e.getMessage());
+        }
+    }
+
+    @Override
+    public void sendStaffApprovedToClientEmail(String clientEmail, String clientName, String staffName, String designation, String location) {
+        if (resend == null) {
+            log.info("No RESEND_API_KEY configured - staff approved notification to client {} : staff={}, designation={}, location={}",
+                    clientEmail, staffName, designation, location);
+            return;
+        }
+
+        try {
+            CreateEmailOptions email = CreateEmailOptions.builder()
+                    .from(from)
+                    .to(clientEmail)
+                    .subject("NurseAdda - Your Assigned Staff Details")
+                    .html("<p>Hi <b>" + clientName + "</b>,</p>"
+                            + "<p>Great news! We have assigned a staff member to your staffing request.</p>"
+                            + "<p><b>Assigned Staff Details:</b></p>"
+                            + "<ul>"
+                            + "<li>Name: " + staffName + "</li>"
+                            + "<li>Designation: " + designation + "</li>"
+                            + "<li>Location: " + location + "</li>"
+                            + "</ul>"
+                            + "<p>You can view the full profile and documents in your dashboard.</p>")
+                    .build();
+            resend.emails().send(email);
+            log.info("Staff approved email sent to client {}", clientEmail);
+        } catch (Exception e) {
+            log.error("Failed to send staff approved email to {} : {}", clientEmail, e.getMessage());
+        }
+    }
 }

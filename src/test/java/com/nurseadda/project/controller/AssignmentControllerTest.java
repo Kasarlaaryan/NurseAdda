@@ -69,7 +69,7 @@ class AssignmentControllerTest {
         response.setEstimatedTotal(new BigDecimal("4000.00"));
         response.setAdvanceAmount(new BigDecimal("1600.00"));
 
-        when(assignmentService.getPendingRequestsForStaff("priya@nurse.com"))
+        when(assignmentService.getPendingRequestsForStaff(eq("priya@nurse.com"), nullable(com.nurseadda.project.enums.RequestType.class)))
                 .thenReturn(List.of(response));
 
         mockMvc.perform(get("/api/staffing-requests/pending")
@@ -80,7 +80,7 @@ class AssignmentControllerTest {
                 .andExpect(jsonPath("$[0].designation").value("ICU Nurse"))
                 .andExpect(jsonPath("$[0].advancePaid").value(true));
 
-        verify(assignmentService).getPendingRequestsForStaff("priya@nurse.com");
+        verify(assignmentService).getPendingRequestsForStaff(eq("priya@nurse.com"), nullable(com.nurseadda.project.enums.RequestType.class));
     }
 
     @Test
@@ -248,16 +248,19 @@ class AssignmentControllerTest {
         response.setStaffName("Priya Sharma");
         response.setStatus(AssignmentStatus.ACTIVE);
 
-        when(assignmentService.getClientAssignments("rahul@hospital.com"))
-                .thenReturn(List.of(response));
+        var pageResponse = new com.nurseadda.project.dto.response.PageResponse<>(
+                List.of(response), 0, 20, 1, 1, true, true);
+
+        when(assignmentService.getClientAssignments(eq("rahul@hospital.com"), any()))
+                .thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/assignments/my-clients")
                         .principal(new UsernamePasswordAuthenticationToken("rahul@hospital.com", null,
                                 List.of(new SimpleGrantedAuthority("ROLE_USER")))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(15))
-                .andExpect(jsonPath("$[0].staffName").value("Priya Sharma"));
+                .andExpect(jsonPath("$.content[0].id").value(15))
+                .andExpect(jsonPath("$.content[0].staffName").value("Priya Sharma"));
 
-        verify(assignmentService).getClientAssignments("rahul@hospital.com");
+        verify(assignmentService).getClientAssignments(eq("rahul@hospital.com"), any());
     }
 }

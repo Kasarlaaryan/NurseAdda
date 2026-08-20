@@ -2,6 +2,8 @@ package com.nurseadda.project.repository;
 
 import com.nurseadda.project.entity.Assignment;
 import com.nurseadda.project.enums.AssignmentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,12 +15,16 @@ import java.util.List;
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     List<Assignment> findByStaffProfileId(Long staffProfileId);
+    Page<Assignment> findByStaffProfileId(Long staffProfileId, Pageable pageable);
 
     List<Assignment> findByStaffingRequestId(Long staffingRequestId);
+    Page<Assignment> findByStaffingRequestId(Long staffingRequestId, Pageable pageable);
 
     List<Assignment> findByStatus(AssignmentStatus status);
+    Page<Assignment> findByStatus(AssignmentStatus status, Pageable pageable);
 
     List<Assignment> findByStaffProfileIdAndStatus(Long staffProfileId, AssignmentStatus status);
+    Page<Assignment> findByStaffProfileIdAndStatus(Long staffProfileId, AssignmentStatus status, Pageable pageable);
 
     List<Assignment> findByStaffingRequestIdAndStatus(Long staffingRequestId, AssignmentStatus status);
 

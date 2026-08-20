@@ -1,6 +1,8 @@
 package com.nurseadda.project.repository;
 
 import com.nurseadda.project.entity.Payment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +15,7 @@ import java.util.Optional;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByStaffProfileId(Long staffProfileId);
+    Page<Payment> findByStaffProfileId(Long staffProfileId, Pageable pageable);
     List<Payment> findByAssignmentId(Long assignmentId);
     List<Payment> findByStatus(String status);
     Optional<Payment> findByAssignmentIdAndStaffProfileId(Long assignmentId, Long staffProfileId);

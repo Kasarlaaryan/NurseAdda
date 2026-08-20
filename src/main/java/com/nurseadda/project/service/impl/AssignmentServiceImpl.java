@@ -4,10 +4,12 @@ import com.nurseadda.project.dto.request.AssignmentRequest;
 import com.nurseadda.project.dto.request.AssignmentStatusUpdate;
 import com.nurseadda.project.dto.request.StaffingRequestDto;
 import com.nurseadda.project.dto.response.AssignmentResponse;
+import com.nurseadda.project.dto.response.PageResponse;
 import com.nurseadda.project.dto.response.StaffDetailsResponse;
 import com.nurseadda.project.dto.response.StaffingRequestResponse;
 import com.nurseadda.project.entity.*;
 import com.nurseadda.project.enums.AssignmentStatus;
+import com.nurseadda.project.enums.RequestType;
 import com.nurseadda.project.enums.Role;
 import com.nurseadda.project.enums.StaffingRequestStatus;
 
@@ -16,7 +18,9 @@ import java.math.RoundingMode;
 import com.nurseadda.project.common.exception.ResourceNotFoundException;
 import com.nurseadda.project.repository.*;
 import com.nurseadda.project.service.AssignmentService;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AssignmentServiceImpl implements AssignmentService {
@@ -36,6 +41,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final StaffDocumentRepository staffDocumentRepository;
     private final RateConfigRepository rateConfigRepository;
+    private final com.nurseadda.project.service.EmailService emailService;
 
     // ─────────────────────────────────────────────
     // Staffing Requests
@@ -59,16 +65,31 @@ public class AssignmentServiceImpl implements AssignmentService {
         staffingRequest.setEndDate(request.getEndDate());
         staffingRequest.setNumberOfStaff(request.getNumberOfStaff());
         staffingRequest.setRequiredSkills(request.getRequiredSkills());
+        staffingRequest.setRequestType(request.getRequestType());
         staffingRequest.setDeadline(LocalDateTime.now().plusHours(4));
 
-        // Calculate 40% advance based on rate config
+        // Calculate 40% advance based on rate config and request type
         String shiftType = determineShiftType(request.getShift());
         var rateConfigOpt = rateConfigRepository.findByShiftType(shiftType);
         if (rateConfigOpt.isPresent()) {
             var rateConfig = rateConfigOpt.get();
             BigDecimal hourlyRate = rateConfig.getClientHourlyRate();
-            BigDecimal hours = BigDecimal.valueOf(shiftType.equals("12HR") ? 12 : 8);
-            BigDecimal estimatedTotal = hourlyRate.multiply(hours).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal hoursPerDay = BigDecimal.valueOf(shiftType.equals("12HR") ? 12 : 8);
+
+            BigDecimal estimatedTotal;
+            if (request.getRequestType() == com.nurseadda.project.enums.RequestType.MONTHLY) {
+                // Monthly: hourlyRate × hoursPerDay × 26 working days × numberOfStaff
+                BigDecimal workingDays = BigDecimal.valueOf(26);
+                estimatedTotal = hourlyRate.multiply(hoursPerDay).multiply(workingDays)
+                        .multiply(BigDecimal.valueOf(request.getNumberOfStaff()))
+                        .setScale(2, RoundingMode.HALF_UP);
+            } else {
+                // On-call: hourlyRate × hoursPerDay × numberOfStaff (single day)
+                estimatedTotal = hourlyRate.multiply(hoursPerDay)
+                        .multiply(BigDecimal.valueOf(request.getNumberOfStaff()))
+                        .setScale(2, RoundingMode.HALF_UP);
+            }
+
             BigDecimal advanceAmt = estimatedTotal.multiply(new BigDecimal("0.40")).setScale(2, RoundingMode.HALF_UP);
             staffingRequest.setEstimatedTotal(estimatedTotal);
             staffingRequest.setAdvanceAmount(advanceAmt);
@@ -93,10 +114,59 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public PageResponse<StaffingRequestResponse> getClientStaffingRequests(String clientEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(clientEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + clientEmail));
+        Client client = clientRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Client profile not found"));
+        return PageResponse.of(staffingRequestRepository.findByClientId(client.getId(), pageable)
+                .map(this::mapToStaffingRequestResponse));
+    }
+
+    @Override
+    public PageResponse<StaffingRequestResponse> getClientStaffingRequests(String clientEmail, RequestType requestType, Pageable pageable) {
+        if (requestType == null) return getClientStaffingRequests(clientEmail, pageable);
+        User user = userRepository.findByEmail(clientEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + clientEmail));
+        Client client = clientRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Client profile not found"));
+        return PageResponse.of(staffingRequestRepository.findByClientIdAndRequestType(client.getId(), requestType, pageable)
+                .map(this::mapToStaffingRequestResponse));
+    }
+
+    @Override
     public List<StaffingRequestResponse> getAllStaffingRequests() {
         return staffingRequestRepository.findAll()
                 .stream()
                 .map(this::mapToStaffingRequestResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<StaffingRequestResponse> getAllStaffingRequests(Pageable pageable) {
+        return PageResponse.of(staffingRequestRepository.findAll(pageable)
+                .map(this::mapToStaffingRequestResponse));
+    }
+
+    @Override
+    public PageResponse<StaffingRequestResponse> getAllStaffingRequests(RequestType requestType, Pageable pageable) {
+        if (requestType == null) return getAllStaffingRequests(pageable);
+        List<StaffingRequestResponse> all = staffingRequestRepository.findAll(pageable)
+                .getContent().stream()
+                .filter(sr -> sr.getRequestType() == requestType)
+                .map(this::mapToStaffingRequestResponse)
+                .collect(Collectors.toList());
+        long total = all.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) total / pageable.getPageSize()));
+        return new PageResponse<>(all, pageable.getPageNumber(), pageable.getPageSize(), total, totalPages, pageable.getPageNumber() == 0, all.size() < pageable.getPageSize());
+    }
+
+    @Override
+    public List<StaffingRequestResponse> getPendingRequestsForStaff(String staffEmail, RequestType requestType) {
+        List<StaffingRequestResponse> all = getPendingRequestsForStaff(staffEmail);
+        if (requestType == null) return all;
+        return all.stream()
+                .filter(r -> requestType.name().equals(r.getRequestType()))
                 .collect(Collectors.toList());
     }
 
@@ -123,6 +193,17 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .filter(sr -> !hasAlreadyAccepted(sr.getId(), staffProfile.getId()))
                 .map(this::mapToStaffingRequestResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<StaffingRequestResponse> getPendingRequestsForStaff(String staffEmail, Pageable pageable) {
+        // Get all filtered (same as non-paginated)
+        List<StaffingRequestResponse> all = getPendingRequestsForStaff(staffEmail);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        List<StaffingRequestResponse> pageContent = start < all.size() ? all.subList(start, end) : new ArrayList<>();
+        int totalPages = Math.max(1, (int) Math.ceil((double) all.size() / pageable.getPageSize()));
+        return new PageResponse<>(pageContent, pageable.getPageNumber(), pageable.getPageSize(), all.size(), totalPages, start == 0, end >= all.size());
     }
 
     @Override
@@ -184,6 +265,25 @@ public class AssignmentServiceImpl implements AssignmentService {
         // Update staffing request status
         staffingRequest.setStatus(StaffingRequestStatus.ASSIGNED);
         staffingRequestRepository.save(staffingRequest);
+
+        // Notify admin that staff accepted the assignment
+        try {
+            java.util.List<com.nurseadda.project.entity.User> admins = userRepository.findByRole(com.nurseadda.project.enums.Role.ROLE_ADMIN);
+            java.util.List<com.nurseadda.project.entity.User> superAdmins = userRepository.findByRole(com.nurseadda.project.enums.Role.ROLE_SUPER_ADMIN);
+            java.util.List<com.nurseadda.project.entity.User> allAdmins = new java.util.ArrayList<>();
+            allAdmins.addAll(admins);
+            allAdmins.addAll(superAdmins);
+            for (com.nurseadda.project.entity.User admin : allAdmins) {
+                emailService.sendAssignmentAcceptedEmail(
+                        admin.getEmail(),
+                        user.getFirstName() + " " + user.getLastName(),
+                        staffingRequest.getDesignation(),
+                        staffingRequest.getLocation()
+                );
+            }
+        } catch (Exception e) {
+            log.error("Failed to send assignment accepted notification: {}", e.getMessage());
+        }
 
         return mapToAssignmentResponse(assignment);
     }
@@ -268,6 +368,21 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public PageResponse<StaffingRequestResponse> getStaffingRequestsByStatus(String status, Pageable pageable) {
+        StaffingRequestStatus enumStatus = StaffingRequestStatus.valueOf(status.toUpperCase());
+        return PageResponse.of(staffingRequestRepository.findByStatus(enumStatus, pageable)
+                .map(this::mapToStaffingRequestResponse));
+    }
+
+    @Override
+    public PageResponse<StaffingRequestResponse> getStaffingRequestsByStatus(String status, RequestType requestType, Pageable pageable) {
+        if (requestType == null) return getStaffingRequestsByStatus(status, pageable);
+        StaffingRequestStatus enumStatus = StaffingRequestStatus.valueOf(status.toUpperCase());
+        return PageResponse.of(staffingRequestRepository.findByStatusAndRequestType(enumStatus, requestType, pageable)
+                .map(this::mapToStaffingRequestResponse));
+    }
+
+    @Override
     @Transactional
     public StaffingRequestResponse updateStaffingRequestStatus(Long requestId, StaffingRequestStatus newStatus, String adminEmail, String userRole) {
         // FIX 1: Verify user is admin
@@ -316,6 +431,21 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .stream()
                 .map(this::mapToAssignmentResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<AssignmentResponse> getStaffingRequestAssignments(Long requestId, String clientEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(clientEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + clientEmail));
+        Client client = clientRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Client profile not found"));
+        StaffingRequest staffingRequest = staffingRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Staffing request not found with id: " + requestId));
+        if (!staffingRequest.getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("This staffing request does not belong to you");
+        }
+        return PageResponse.of(assignmentRepository.findByStaffingRequestId(requestId, pageable)
+                .map(this::mapToAssignmentResponse));
     }
 
     // ─────────────────────────────────────────────
@@ -438,11 +568,40 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public PageResponse<AssignmentResponse> getStaffAssignments(String staffEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(staffEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + staffEmail));
+        StaffProfile staffProfile = staffProfileRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Staff profile not found"));
+        return PageResponse.of(assignmentRepository.findByStaffProfileId(staffProfile.getId(), pageable)
+                .map(this::mapToAssignmentResponse));
+    }
+
+    @Override
     public List<AssignmentResponse> getAllAssignments() {
         return assignmentRepository.findAll()
                 .stream()
                 .map(this::mapToAssignmentResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<AssignmentResponse> getAllAssignments(Pageable pageable) {
+        return PageResponse.of(assignmentRepository.findAll(pageable)
+                .map(this::mapToAssignmentResponse));
+    }
+
+    @Override
+    public PageResponse<AssignmentResponse> getAllAssignments(RequestType requestType, Pageable pageable) {
+        if (requestType == null) return getAllAssignments(pageable);
+        List<AssignmentResponse> all = assignmentRepository.findAll(pageable)
+                .getContent().stream()
+                .filter(a -> a.getStaffingRequest().getRequestType() == requestType)
+                .map(this::mapToAssignmentResponse)
+                .collect(Collectors.toList());
+        long total = all.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) total / pageable.getPageSize()));
+        return new PageResponse<>(all, pageable.getPageNumber(), pageable.getPageSize(), total, totalPages, pageable.getPageNumber() == 0, all.size() < pageable.getPageSize());
     }
 
     @Override
@@ -478,6 +637,30 @@ public class AssignmentServiceImpl implements AssignmentService {
                     .map(this::mapToAssignmentResponse)
                     .collect(Collectors.toList());
         }
+    }
+
+    @Override
+    public PageResponse<AssignmentResponse> getAssignmentsByStatus(AssignmentStatus status, String email, String userRole, Pageable pageable) {
+        List<AssignmentResponse> all;
+        if (userRole.equals(Role.ROLE_ADMIN.name()) || userRole.equals(Role.ROLE_SUPER_ADMIN.name())) {
+            all = assignmentRepository.findByStatus(status).stream().map(this::mapToAssignmentResponse).collect(Collectors.toList());
+        } else if (userRole.equals(Role.ROLE_STAFF.name())) {
+            User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            StaffProfile sp = staffProfileRepository.findByUserId(user.getId()).orElseThrow(() -> new ResourceNotFoundException("Staff profile not found"));
+            all = assignmentRepository.findByStaffProfileIdAndStatus(sp.getId(), status).stream().map(this::mapToAssignmentResponse).collect(Collectors.toList());
+        } else {
+            User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            Client client = clientRepository.findByUserId(user.getId()).orElseThrow(() -> new ResourceNotFoundException("Client profile not found"));
+            List<StaffingRequest> requests = staffingRequestRepository.findByClientId(client.getId());
+            List<Assignment> collected = new ArrayList<>();
+            for (StaffingRequest sr : requests) { collected.addAll(assignmentRepository.findByStaffingRequestIdAndStatus(sr.getId(), status)); }
+            all = collected.stream().map(this::mapToAssignmentResponse).collect(Collectors.toList());
+        }
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        List<AssignmentResponse> pageContent = start < all.size() ? all.subList(start, end) : new ArrayList<>();
+        int totalPages = Math.max(1, (int) Math.ceil((double) all.size() / pageable.getPageSize()));
+        return new PageResponse<>(pageContent, pageable.getPageNumber(), pageable.getPageSize(), all.size(), totalPages, start == 0, end >= all.size());
     }
 
     @Override
@@ -603,6 +786,22 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         assignment = assignmentRepository.save(assignment);
+
+        // Notify client that staff details have been approved and sent
+        try {
+            com.nurseadda.project.entity.Client client = assignment.getStaffingRequest().getClient();
+            com.nurseadda.project.entity.User clientUser = client.getUser();
+            emailService.sendStaffApprovedToClientEmail(
+                    clientUser.getEmail(),
+                    clientUser.getFirstName() + " " + clientUser.getLastName(),
+                    assignment.getStaffProfile().getUser().getFirstName() + " " + assignment.getStaffProfile().getUser().getLastName(),
+                    assignment.getStaffingRequest().getDesignation(),
+                    assignment.getStaffingRequest().getLocation()
+            );
+        } catch (Exception e) {
+            log.error("Failed to send staff approved notification to client: {}", e.getMessage());
+        }
+
         return mapToAssignmentResponse(assignment);
     }
 
@@ -628,6 +827,54 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public PageResponse<AssignmentResponse> getClientAssignments(String clientEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(clientEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + clientEmail));
+        Client client = clientRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Client profile not found"));
+        List<StaffingRequest> requests = staffingRequestRepository.findByClientId(client.getId());
+        List<Long> requestIds = requests.stream().map(StaffingRequest::getId).collect(Collectors.toList());
+        // Collect all assignments for these requests
+        List<Assignment> allAssignments = new ArrayList<>();
+        for (Long rid : requestIds) {
+            allAssignments.addAll(assignmentRepository.findByStaffingRequestId(rid));
+        }
+        // Manual pagination
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), allAssignments.size());
+        List<Assignment> pageContent = start < allAssignments.size() ? allAssignments.subList(start, end) : new ArrayList<>();
+        List<AssignmentResponse> mapped = pageContent.stream()
+                .map(this::mapToAssignmentResponse)
+                .collect(Collectors.toList());
+        return new PageResponse<>(mapped, pageable.getPageNumber(), pageable.getPageSize(),
+                allAssignments.size(), (int) Math.ceil((double) allAssignments.size() / pageable.getPageSize()),
+                start == 0, end >= allAssignments.size());
+    }
+
+    @Override
+    public PageResponse<AssignmentResponse> getClientAssignments(String clientEmail, RequestType requestType, Pageable pageable) {
+        if (requestType == null) return getClientAssignments(clientEmail, pageable);
+        User user = userRepository.findByEmail(clientEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + clientEmail));
+        Client client = clientRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Client profile not found"));
+        List<StaffingRequest> requests = staffingRequestRepository.findByClientId(client.getId())
+                .stream()
+                .filter(sr -> sr.getRequestType() == requestType)
+                .collect(Collectors.toList());
+        List<Assignment> allAssignments = new ArrayList<>();
+        for (StaffingRequest sr : requests) {
+            allAssignments.addAll(assignmentRepository.findByStaffingRequestId(sr.getId()));
+        }
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), allAssignments.size());
+        List<Assignment> pageContent = start < allAssignments.size() ? allAssignments.subList(start, end) : new ArrayList<>();
+        List<AssignmentResponse> mapped = pageContent.stream().map(this::mapToAssignmentResponse).collect(Collectors.toList());
+        int totalPages = Math.max(1, (int) Math.ceil((double) allAssignments.size() / pageable.getPageSize()));
+        return new PageResponse<>(mapped, pageable.getPageNumber(), pageable.getPageSize(), allAssignments.size(), totalPages, start == 0, end >= allAssignments.size());
+    }
+
     // ─────────────────────────────────────────────
     // Mapping helpers
     // ─────────────────────────────────────────────
@@ -638,6 +885,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         response.setClientName(request.getClient().getUser().getFirstName() + " " + request.getClient().getUser().getLastName());
         response.setDesignation(request.getDesignation());
         response.setLocation(request.getLocation());
+        response.setRequestType(request.getRequestType() != null ? request.getRequestType().name() : null);
         response.setShift(request.getShift());
         response.setStartDate(request.getStartDate());
         response.setEndDate(request.getEndDate());

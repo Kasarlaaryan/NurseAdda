@@ -1,0 +1,1838 @@
+{
+  "info": {
+    "name": "NurseAdda API",
+    "_postman_id": "nurseadda-api-collection",
+    "description": "Complete API collection for NurseAdda — Healthcare Staffing Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "staffToken", "value": "", "type": "string" },
+    { "key": "clientToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth — Public (No Token)",
+      "item": [
+        {
+          "name": "Register Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.staff@example.com\",\n  \"phone\": \"+919876543210\",\n  \"staffCategory\": \"Nurse\",\n  \"password\": \"staff123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register-staff", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register-staff"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns OTP sent message', () => pm.expect(pm.response.text()).to.include('OTP sent'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"email\": \"jane.client@example.com\",\n  \"mobileNumber\": \"+919876543211\",\n  \"password\": \"client123\",\n  \"confirmPassword\": \"client123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register-client", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register-client"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns OTP sent message', () => pm.expect(pm.response.text()).to.include('OTP sent'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"User\",\n  \"email\": \"admin@example.com\",\n  \"phone\": \"+919876543212\",\n  \"password\": \"admin123\",\n  \"confirmPassword\": \"admin123\",\n  \"adminType\": \"ADMIN\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register-admin", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register-admin"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns success', () => pm.expect(pm.response.text()).to.include('successfully'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.staff@example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/send-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "send-otp"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.staff@example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/resend-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "resend-otp"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP (Complete Registration)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.staff@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "verify-otp"] },
+            "description": "After this, user must call POST /login to get access token"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns verified message (no tokens)', () => pm.expect(pm.response.text()).to.include('verified'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.staff@example.com\",\n  \"password\": \"staff123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns access token', () => pm.expect(pm.response.json().accessToken).to.not.be.empty);",
+                  "pm.test('Returns refresh token', () => pm.expect(pm.response.json().refreshToken).to.not.be.empty);",
+                  "pm.test('Returns user object', () => pm.expect(pm.response.json().user).to.not.be.null);",
+                  "pm.environment.set('accessToken', pm.response.json().accessToken);",
+                  "pm.environment.set('refreshToken', pm.response.json().refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns new access token', () => pm.expect(pm.response.json().accessToken).to.not.be.empty);",
+                  "pm.environment.set('accessToken', pm.response.json().accessToken);",
+                  "pm.environment.set('refreshToken', pm.response.json().refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.staff@example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["api", "auth", "forgot-password"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.staff@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newstaff123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api", "auth", "reset-password"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Auth — Protected (Requires Token)",
+      "item": [
+        {
+          "name": "Get Current User (GET /me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns user email', () => pm.expect(pm.response.json().email).to.not.be.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Client Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "url": { "raw": "{{baseUrl}}/api/auth/client-profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "client-profile"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Client Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith Updated\",\n  \"mobileNumber\": \"+919876543211\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/client-profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "client-profile"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Client Profile",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "url": { "raw": "{{baseUrl}}/api/auth/client-profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "client-profile"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Admin Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": { "raw": "{{baseUrl}}/api/auth/admin-profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "admin-profile"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Admin Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Admin\",\n  \"lastName\": \"Super\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/admin-profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "admin-profile"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Staff Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": { "raw": "{{baseUrl}}/api/auth/staff-profile", "host": ["{{baseUrl}}"], "path": ["api", "auth", "staff-profile"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin/users?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "admin", "users"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Staff Profiles (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/staff?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "staff"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Staff Profile (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verified\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/staff/1/verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "staff", "1", "verification"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"staff123\",\n  \"newPassword\": \"newstaff123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api", "auth", "change-password"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unlock Account (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/users/1/unlock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "users", "1", "unlock"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete User (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/users/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "users", "1"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Staffing Requests",
+      "item": [
+        {
+          "name": "Create Staffing Request (Client)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"designation\": \"Registered Nurse\",\n  \"location\": \"Mumbai, Maharashtra\",\n  \"requestType\": \"ON_CALL\",\n  \"shift\": \"8HR\",\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2026-09-30\",\n  \"numberOfStaff\": 2,\n  \"requiredSkills\": \"ICU, Critical Care\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/staffing-requests", "host": ["{{baseUrl}}"], "path": ["api", "staffing-requests"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns staffing request ID', () => pm.expect(pm.response.json().id).to.not.be.null);",
+                  "pm.environment.set('staffingRequestId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Staffing Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/staffing-requests?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffing-requests"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Staffing Requests (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/staffing-requests?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffing-requests"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Staffing Requests by Status (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/staffing-requests/status/PENDING?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffing-requests", "status", "PENDING"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Pending Requests (Staff)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/staffing-requests/pending?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffing-requests", "pending"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Staffing Request Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/staffing-requests/{{staffingRequestId}}/status?status=APPROVED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffing-requests", "{{staffingRequestId}}", "status"],
+              "query": [
+                { "key": "status", "value": "APPROVED" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Assignments for Staffing Request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/staffing-requests/{{staffingRequestId}}/assignments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffing-requests", "{{staffingRequestId}}", "assignments"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accept Staffing Request (Staff)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/staffing-requests/{{staffingRequestId}}/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffing-requests", "{{staffingRequestId}}", "accept"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('assignmentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pay Advance (Client)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/staffing-requests/{{staffingRequestId}}/pay-advance?razorpayOrderId=order_test123&razorpayPaymentId=pay_test456&razorpaySignature=sig_test789",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staffing-requests", "{{staffingRequestId}}", "pay-advance"],
+              "query": [
+                { "key": "razorpayOrderId", "value": "order_test123" },
+                { "key": "razorpayPaymentId", "value": "pay_test456" },
+                { "key": "razorpaySignature", "value": "sig_test789" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Assignments",
+      "item": [
+        {
+          "name": "Create Assignment (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffProfileId\": 1,\n  \"staffingRequestId\": 1,\n  \"notes\": \"Assigned for ICU night shift\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/assignments", "host": ["{{baseUrl}}"], "path": ["api", "assignments"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('assignmentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Assignments (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Assignments (Staff)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Assignments (Client)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Assignment by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments/{{assignmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments", "{{assignmentId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Assignments by Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments/status/ACTIVE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments", "status", "ACTIVE"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Assignment Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"notes\": \"Assignment started\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments/{{assignmentId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments", "{{assignmentId}}", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Staff Details for Assignment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments/{{assignmentId}}/staff-details",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments", "{{assignmentId}}", "staff-details"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve Assignment to Client (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments/{{assignmentId}}/approve-to-client",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments", "{{assignmentId}}", "approve-to-client"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Client Assignments (Client)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/assignments/my-clients?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "assignments", "my-clients"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Attendance",
+      "item": [
+        {
+          "name": "Check In (Staff)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignmentId\": 1,\n  \"notes\": \"Starting shift on time\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/checkin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "checkin"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('attendanceId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Check Out (Staff)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Shift completed successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/checkout/{{attendanceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "checkout", "{{attendanceId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Check out time is set', () => pm.expect(pm.response.json().checkOutTime).to.not.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Today's Attendance (Staff)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/today",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "today"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Attendance History (Staff)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "my"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Attendance by Date Range (Staff)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/my/range?startDate=2026-08-01&endDate=2026-08-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "my", "range"],
+              "query": [
+                { "key": "startDate", "value": "2026-08-01" },
+                { "key": "endDate", "value": "2026-08-31" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Total Working Hours (Staff)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/my/hours?startDate=2026-08-01&endDate=2026-08-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "my", "hours"],
+              "query": [
+                { "key": "startDate", "value": "2026-08-01" },
+                { "key": "endDate", "value": "2026-08-31" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Attendance by Assignment (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/assignment/{{assignmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "assignment", "{{assignmentId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Billing — Rates",
+      "item": [
+        {
+          "name": "Create / Update Rate (Super Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftType\": \"8HR\",\n  \"staffHourlyRate\": 125.00,\n  \"clientHourlyRate\": 187.50,\n  \"overtimeMultiplier\": 1.50\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/rates", "host": ["{{baseUrl}}"], "path": ["api", "rates"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('rateId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create 12HR Rate (Super Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftType\": \"12HR\",\n  \"staffHourlyRate\": 125.00,\n  \"clientHourlyRate\": 187.50,\n  \"overtimeMultiplier\": 1.50\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/rates", "host": ["{{baseUrl}}"], "path": ["api", "rates"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Rates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/rates", "host": ["{{baseUrl}}"], "path": ["api", "rates"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Rate by Shift Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rates/8HR",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rates", "8HR"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Rate (Super Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/rates/{{rateId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rates", "{{rateId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Billing — Invoices",
+      "item": [
+        {
+          "name": "Generate Invoice from Attendance",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices/generate/{{attendanceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invoices", "generate", "{{attendanceId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('invoiceId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Invoices (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invoices"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Invoices (Client)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{clientToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invoices"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Invoice by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices/{{invoiceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invoices", "{{invoiceId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download Invoice PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices/{{invoiceId}}/pdf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invoices", "{{invoiceId}}", "pdf"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type is PDF', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Invoice Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/invoices/{{invoiceId}}/status?status=PAID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "invoices", "{{invoiceId}}", "status"],
+              "query": [
+                { "key": "status", "value": "PAID" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Billing — Payments",
+      "item": [
+        {
+          "name": "Generate Payment from Attendance",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/generate/{{attendanceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "generate", "{{attendanceId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('paymentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Payments (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Payments (Staff)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{staffToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Payment Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{{paymentId}}/status?status=PAID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payments", "{{paymentId}}", "status"],
+              "query": [
+                { "key": "status", "value": "PAID" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Billing Summary (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "url": {
+              "raw": "{{baseUrl}}/api/billing/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "billing", "summary"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Payment Gateway (Razorpay)",
+      "item": [
+        {
+          "name": "Get Payment Gateway Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-gateway/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment-gateway", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns available field', () => pm.expect(pm.response.json().available).to.not.be.null);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Razorpay Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": 1,\n  \"amount\": 1500.00,\n  \"currency\": \"INR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-gateway/create-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment-gateway", "create-order"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 503', () => pm.expect([200, 503]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Razorpay Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": 1,\n  \"razorpayOrderId\": \"order_test123\",\n  \"razorpayPaymentId\": \"pay_test456\",\n  \"razorpaySignature\": \"sig_test789\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payment-gateway/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payment-gateway", "verify"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 400', () => pm.expect([200, 400]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. Swagger / OpenAPI Docs",
+      "item": [
+        {
+          "name": "Open Swagger UI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/swagger-ui/index.html",
+              "host": ["{{baseUrl}}"],
+              "path": ["swagger-ui", "index.html"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI JSON Docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v3/api-docs",
+              "host": ["{{baseUrl}}"],
+              "path": ["v3", "api-docs"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

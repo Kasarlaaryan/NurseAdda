@@ -372,7 +372,7 @@ class AuthServiceImplTest {
         when(staffDocumentRepository.findByStaffProfileId(10L)).thenReturn(java.util.List.of());
 
         authService.updateStaffProfile("rohan@test.com",
-                new StaffProfileRequest("123456789012", null, null), null, null, null);
+                new StaffProfileRequest("123456789012", null, null, null), null, null, null);
 
         assertThat(staffProfile.getAadharCardNumber()).isEqualTo("123456789012");
         verify(staffProfileRepository).save(staffProfile);
@@ -792,6 +792,7 @@ class AuthServiceImplTest {
         StaffProfileResponseDto response = authService.updateStaffProfile("rohan@test.com",
                 new StaffProfileRequest(
                         "123456789012",
+                        null,
                         LocalDate.of(2026, 12, 31),
                         LocalDate.of(2026, 1, 15)
                 ),
@@ -842,7 +843,7 @@ class AuthServiceImplTest {
         when(photo.getOriginalFilename()).thenReturn("staff-photo.jpg");
 
         authService.updateStaffProfile("rohan@test.com",
-                new StaffProfileRequest("123456789012", null, null),
+                new StaffProfileRequest("123456789012", null, null, null),
                 cert,
                 List.of(doc),
                 List.of(photo));
@@ -870,7 +871,7 @@ class AuthServiceImplTest {
         when(userRepository.findByEmail("nobody@test.com")).thenReturn(java.util.Optional.empty());
 
         assertThatThrownBy(() -> authService.updateStaffProfile("nobody@test.com",
-                new StaffProfileRequest("123456789012", null, null), null, null, null))
+                new StaffProfileRequest("123456789012", null, null, null), null, null, null))
                 .isInstanceOf(UserNotFoundException.class)
                 .hasMessageContaining("nobody@test.com");
 
@@ -889,7 +890,7 @@ class AuthServiceImplTest {
         when(staffProfileRepository.findByUserId(5L)).thenReturn(java.util.Optional.empty());
 
         assertThatThrownBy(() -> authService.updateStaffProfile("rohan@test.com",
-                new StaffProfileRequest("123456789012", null, null), null, null, null))
+                new StaffProfileRequest("123456789012", null, null, null), null, null, null))
                 .isInstanceOf(ResourceNotFoundException.class);
 
         verify(staffProfileRepository, never()).save(any());

@@ -103,17 +103,20 @@ class InvoiceControllerTest {
         response.setTotalAmount(new BigDecimal("4000.00"));
         response.setStatus("PENDING");
 
-        when(invoiceService.getClientInvoices("rahul@hospital.com"))
-                .thenReturn(java.util.List.of(response));
+        var pageResponse = new com.nurseadda.project.dto.response.PageResponse<>(
+                java.util.List.of(response), 0, 20, 1, 1, true, true);
+
+        when(invoiceService.getClientInvoices(eq("rahul@hospital.com"), any()))
+                .thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/invoices")
                         .principal(new UsernamePasswordAuthenticationToken("rahul@hospital.com", null,
                                 List.of(new SimpleGrantedAuthority("ROLE_USER")))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].totalAmount").value(4000.00));
+                .andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.content[0].totalAmount").value(4000.00));
 
-        verify(invoiceService).getClientInvoices("rahul@hospital.com");
+        verify(invoiceService).getClientInvoices(eq("rahul@hospital.com"), any());
     }
 
     // =====================================================================

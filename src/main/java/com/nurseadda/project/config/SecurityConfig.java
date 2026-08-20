@@ -36,6 +36,13 @@ public class SecurityConfig {
                                 "/api/auth/reset-password",
                                 "/uploads/**"
                         ).permitAll()
+                        // Swagger / OpenAPI
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs"
+                        ).permitAll()
                         // Auth profile endpoints - role-based
                         .requestMatchers(HttpMethod.PATCH, "/api/auth/users/*/unlock")
                                 .hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -70,8 +77,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/attendance/*").hasRole("STAFF")
                         .requestMatchers(HttpMethod.GET, "/api/attendance/*").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/attendance/my*").authenticated()
-                        // Rate config - admin only
-                        .requestMatchers(HttpMethod.POST, "/api/rates").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Rate config - super admin only for create/update, everyone can view
+                        .requestMatchers(HttpMethod.POST, "/api/rates").hasRole("SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/rates/*").hasRole("SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/rates").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/rates/*").authenticated()
                         // Invoice endpoints
