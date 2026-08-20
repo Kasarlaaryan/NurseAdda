@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
+import com.nurseadda.project.enums.RequestType;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,6 +22,9 @@ public class StaffingRequestDto {
 
     @NotBlank(message = "Location is required")
     private String location;
+
+    @NotNull(message = "Request type is required")
+    private RequestType requestType;
 
     @NotBlank(message = "Shift is required")
     private String shift;

@@ -603,7 +603,7 @@ class AuthControllerTest {
     @DisplayName("updateStaffProfile: valid multipart request returns 200 with updated profile")
     void updateStaffProfile_validRequest_returns200() throws Exception {
         StaffProfileRequest request = new StaffProfileRequest(
-                "123456789012", LocalDate.of(2026, 12, 31), LocalDate.of(2026, 1, 15));
+                "123456789012", null, LocalDate.of(2026, 12, 31), LocalDate.of(2026, 1, 15));
 
         StaffProfileResponseDto responseDto = StaffProfileResponseDto.builder()
                 .id(10L)
@@ -656,7 +656,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("updateStaffProfile: invalid aadhar returns 400 with field error")
     void updateStaffProfile_invalidAadhar_returns400() throws Exception {
-        StaffProfileRequest request = new StaffProfileRequest("123", null, null);
+        StaffProfileRequest request = new StaffProfileRequest("123", null, null, null);
         MockMultipartFile profile = new MockMultipartFile("profile", "profile.json",
                 MediaType.APPLICATION_JSON_VALUE, objectMapper.writeValueAsBytes(request));
 

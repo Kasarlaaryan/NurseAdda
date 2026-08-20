@@ -40,7 +40,7 @@ public interface AuthService {
 
     void sendOtp(SendOtpRequest sendOtpRequest) throws UserNotFoundException;
 
-    AuthResponseDto verifyOtp(VerifyOtpRequest verifyOtpRequest) throws UserNotFoundException, InvalidOtpException, OtpExpiredException;
+    String verifyOtp(VerifyOtpRequest verifyOtpRequest) throws UserNotFoundException, InvalidOtpException, OtpExpiredException;
 
     UserResponseDto updateClientProfile(String email, ClientProfileRequest clientProfileRequest) throws UserNotFoundException;
 

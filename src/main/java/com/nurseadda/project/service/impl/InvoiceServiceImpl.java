@@ -7,11 +7,15 @@ import com.nurseadda.project.dto.response.InvoiceResponse;
 import com.nurseadda.project.dto.response.PaymentResponse;
 import com.nurseadda.project.dto.response.RateConfigResponse;
 import com.nurseadda.project.entity.*;
+import com.nurseadda.project.enums.Role;
 import com.nurseadda.project.repository.*;
 import com.nurseadda.project.service.InvoiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.nurseadda.project.dto.response.PageResponse;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -32,7 +36,12 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional
-    public RateConfigResponse createOrUpdateRateConfig(RateConfigRequest request) {
+    public RateConfigResponse createOrUpdateRateConfig(RateConfigRequest request, String adminEmail) {
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        if (admin.getRole() != Role.ROLE_SUPER_ADMIN) {
+            throw new IllegalArgumentException("Only super admin can manage rate configurations");
+        }
         RateConfig rateConfig = rateConfigRepository.findByShiftType(request.getShiftType())
                 .orElse(new RateConfig());
         rateConfig.setShiftType(request.getShiftType());
@@ -41,6 +50,19 @@ public class InvoiceServiceImpl implements InvoiceService {
         rateConfig.setOvertimeMultiplier(request.getOvertimeMultiplier() != null ? request.getOvertimeMultiplier() : new BigDecimal("1.50"));
         rateConfig = rateConfigRepository.save(rateConfig);
         return mapToRateConfigResponse(rateConfig);
+    }
+
+    @Override
+    @Transactional
+    public void deleteRateConfig(Long rateConfigId, String adminEmail) {
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        if (admin.getRole() != Role.ROLE_SUPER_ADMIN) {
+            throw new IllegalArgumentException("Only super admin can manage rate configurations");
+        }
+        RateConfig rateConfig = rateConfigRepository.findById(rateConfigId)
+                .orElseThrow(() -> new ResourceNotFoundException("Rate config not found with id: " + rateConfigId));
+        rateConfigRepository.delete(rateConfig);
     }
 
     @Override
@@ -147,8 +169,20 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    public PageResponse<InvoiceResponse> getClientInvoices(String clientEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(clientEmail).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        Client client = clientRepository.findByUserId(user.getId()).orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+        return PageResponse.of(invoiceRepository.findByClientId(client.getId(), pageable).map(this::mapToInvoiceResponse));
+    }
+
+    @Override
     public List<InvoiceResponse> getAllInvoices() {
         return invoiceRepository.findAll().stream().map(this::mapToInvoiceResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<InvoiceResponse> getAllInvoices(Pageable pageable) {
+        return PageResponse.of(invoiceRepository.findAll(pageable).map(this::mapToInvoiceResponse));
     }
 
     @Override
@@ -177,8 +211,20 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    public PageResponse<PaymentResponse> getStaffPayments(String staffEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(staffEmail).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        StaffProfile sp = staffProfileRepository.findByUserId(user.getId()).orElseThrow(() -> new ResourceNotFoundException("Staff not found"));
+        return PageResponse.of(paymentRepository.findByStaffProfileId(sp.getId(), pageable).map(this::mapToPaymentResponse));
+    }
+
+    @Override
     public List<PaymentResponse> getAllPayments() {
         return paymentRepository.findAll().stream().map(this::mapToPaymentResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<PaymentResponse> getAllPayments(Pageable pageable) {
+        return PageResponse.of(paymentRepository.findAll(pageable).map(this::mapToPaymentResponse));
     }
 
     @Override

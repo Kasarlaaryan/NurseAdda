@@ -128,7 +128,10 @@ Java 15 introduced multiline string literals
                 || path.equals("/api/auth/forgot-password")
                 || path.equals("/api/auth/reset-password")
                 || path.equals("/api/auth/register-admin")
-                || path.startsWith("/uploads/");
+                || path.startsWith("/uploads/")
+                || path.startsWith("/swagger-ui")
+                || path.equals("/swagger-ui.html")
+                || path.startsWith("/v3/api-docs");
     }
 
 }

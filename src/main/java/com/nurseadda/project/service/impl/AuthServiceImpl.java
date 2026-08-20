@@ -253,7 +253,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public AuthResponseDto verifyOtp(VerifyOtpRequest verifyOtpRequest) throws UserNotFoundException, InvalidOtpException, OtpExpiredException {
+    public String verifyOtp(VerifyOtpRequest verifyOtpRequest) throws UserNotFoundException, InvalidOtpException, OtpExpiredException {
         PendingRegistration pending = pendingRegistrationRepository.findByEmail(verifyOtpRequest.getEmail())
                 .orElseThrow(() -> new InvalidOtpException("No pending registration found. Please register first"));
 
@@ -300,7 +300,7 @@ public class AuthServiceImpl implements AuthService {
 
         pendingRegistrationRepository.deleteByEmail(pending.getEmail());
 
-        return buildAuthResponse(savedUser);
+        return "Registration verified successfully. Please login to continue.";
     }
 
     @Override
@@ -516,6 +516,11 @@ public class AuthServiceImpl implements AuthService {
 
         if (staffProfileRequest.getLicenseRenewalDate() != null) {
             staffProfile.setLicenseRenewalDate(staffProfileRequest.getLicenseRenewalDate());
+        }
+
+        if (staffProfileRequest.getLocation() != null
+                && !staffProfileRequest.getLocation().isBlank()) {
+            staffProfile.setLocation(staffProfileRequest.getLocation());
         }
 
         // State board certificate: replace any existing one

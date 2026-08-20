@@ -36,6 +36,13 @@ public class SecurityConfig {
                                 "/api/auth/reset-password",
                                 "/uploads/**"
                         ).permitAll()
+                        // Swagger / OpenAPI
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs"
+                        ).permitAll()
                         // Auth profile endpoints - role-based
                         .requestMatchers(HttpMethod.PATCH, "/api/auth/users/*/unlock")
                                 .hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -48,42 +55,46 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/admin-profile").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/auth/admin-profile").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/auth/admin/users").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/auth/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/auth/users/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/auth/register-admin").permitAll()
                         // Assignment endpoints - role-based
                         .requestMatchers(HttpMethod.POST, "/api/assignments").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/api/assignments/**/approve-to-client").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/assignments/*/approve-to-client").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/assignments").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/assignments/**").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/assignments/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/assignments/*").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/assignments/my-clients").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/assignments/*").authenticated()
                         // Staffing request endpoints - role-based
                         .requestMatchers(HttpMethod.POST, "/api/staffing-requests").hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/staffing-requests/*/pay-advance").hasRole("USER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/staffing-requests/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/staffing-requests/*/status").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/staffing-requests/pending").hasRole("STAFF")
                         .requestMatchers(HttpMethod.POST, "/api/staffing-requests/*/accept").hasRole("STAFF")
                         .requestMatchers(HttpMethod.GET, "/api/staffing-requests").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/staffing-requests/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/staffing-requests/*").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/staffing-requests/status/*").authenticated()
                         // Attendance endpoints - staff only
-                        .requestMatchers(HttpMethod.POST, "/api/attendance/**").hasRole("STAFF")
-                        .requestMatchers(HttpMethod.GET, "/api/attendance/**").authenticated()
-                        // Rate config - admin only
-                        .requestMatchers(HttpMethod.POST, "/api/rates").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/attendance/*").hasRole("STAFF")
+                        .requestMatchers(HttpMethod.GET, "/api/attendance/*").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/attendance/my*").authenticated()
+                        // Rate config - super admin only for create/update, everyone can view
+                        .requestMatchers(HttpMethod.POST, "/api/rates").hasRole("SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/rates/*").hasRole("SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/rates").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/rates/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/rates/*").authenticated()
                         // Invoice endpoints
-                        .requestMatchers(HttpMethod.POST, "/api/invoices/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/invoices/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/invoices").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/invoices/**").authenticated()
-                        .requestMatchers(HttpMethod.PATCH, "/api/invoices/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/invoices/*").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/invoices/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         // Payment record endpoints (admin-managed)
-                        .requestMatchers(HttpMethod.POST, "/api/payments/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/payments/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/payments").authenticated()
-                        .requestMatchers(HttpMethod.PATCH, "/api/payments/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/payments/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         // Razorpay payment gateway endpoints
-                        .requestMatchers("/api/payment-gateway/**").authenticated()
+                        .requestMatchers("/api/payment-gateway/*").authenticated()
                         // Billing summary - admin only
-                        .requestMatchers(HttpMethod.GET, "/api/billing/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/billing/*").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

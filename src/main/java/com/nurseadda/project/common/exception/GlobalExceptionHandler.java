@@ -38,6 +38,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(InvalidOtpException.class)
     public ResponseEntity<ErrorResponse> handleInvalidOtp(InvalidOtpException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());

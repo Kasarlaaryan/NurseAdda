@@ -1,5 +1,6 @@
 package com.nurseadda.project.entity;
 
+import com.nurseadda.project.enums.RequestType;
 import com.nurseadda.project.enums.StaffingRequestStatus;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -28,6 +29,10 @@ public class StaffingRequest {
 
     @Column(nullable = false, length = 200)
     private String location;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private RequestType requestType = RequestType.ON_CALL;
 
     @Column(nullable = false, length = 50)
     private String shift;

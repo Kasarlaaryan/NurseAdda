@@ -72,9 +72,9 @@ public class AuthController {
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<AuthResponseDto> verifyOtp(@Valid @RequestBody VerifyOtpRequest verifyOtpRequest) {
-        AuthResponseDto response = authService.verifyOtp(verifyOtpRequest);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<String> verifyOtp(@Valid @RequestBody VerifyOtpRequest verifyOtpRequest) {
+        String message = authService.verifyOtp(verifyOtpRequest);
+        return ResponseEntity.ok(message);
     }
 
     @PutMapping("/client-profile")

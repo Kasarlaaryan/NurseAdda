@@ -3,6 +3,7 @@ package com.nurseadda.project.controller;
 import com.nurseadda.project.dto.request.RateConfigRequest;
 import com.nurseadda.project.dto.response.BillingSummaryResponse;
 import com.nurseadda.project.dto.response.InvoiceResponse;
+import com.nurseadda.project.dto.response.PageResponse;
 import com.nurseadda.project.dto.response.PaymentResponse;
 import com.nurseadda.project.dto.response.RateConfigResponse;
 import com.nurseadda.project.entity.Invoice;
@@ -11,6 +12,9 @@ import com.nurseadda.project.service.InvoiceService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,8 +35,22 @@ public class InvoiceController {
     private final InvoicePdfService invoicePdfService;
 
     @PostMapping("/rates")
-    public ResponseEntity<RateConfigResponse> createOrUpdateRate(@Valid @RequestBody RateConfigRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(invoiceService.createOrUpdateRateConfig(request));
+    public ResponseEntity<RateConfigResponse> createOrUpdateRate(
+            Authentication authentication,
+            @Valid @RequestBody RateConfigRequest request
+    ) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.status(HttpStatus.CREATED).body(invoiceService.createOrUpdateRateConfig(request, email));
+    }
+
+    @DeleteMapping("/rates/{id}")
+    public ResponseEntity<String> deleteRate(
+            Authentication authentication,
+            @PathVariable Long id
+    ) {
+        String email = (String) authentication.getPrincipal();
+        invoiceService.deleteRateConfig(id, email);
+        return ResponseEntity.ok("Rate config deleted successfully");
     }
 
     @GetMapping("/rates")
@@ -51,10 +69,19 @@ public class InvoiceController {
     }
 
     @GetMapping("/invoices")
-    public ResponseEntity<List<InvoiceResponse>> getInvoices(Authentication authentication) {
+    public ResponseEntity<?> getInvoices(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
         String email = (String) authentication.getPrincipal();
         String role = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst().orElse("");
-        return ResponseEntity.ok(role.equals("ROLE_USER") ? invoiceService.getClientInvoices(email) : invoiceService.getAllInvoices());
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("createdAt").descending());
+        if (role.equals("ROLE_USER")) {
+            return ResponseEntity.ok(invoiceService.getClientInvoices(email, pageable));
+        } else {
+            return ResponseEntity.ok(invoiceService.getAllInvoices(pageable));
+        }
     }
 
     @GetMapping("/invoices/{id}")
@@ -84,10 +111,19 @@ public class InvoiceController {
     }
 
     @GetMapping("/payments")
-    public ResponseEntity<List<PaymentResponse>> getPayments(Authentication authentication) {
+    public ResponseEntity<?> getPayments(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
         String email = (String) authentication.getPrincipal();
         String role = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst().orElse("");
-        return ResponseEntity.ok(role.equals("ROLE_STAFF") ? invoiceService.getStaffPayments(email) : invoiceService.getAllPayments());
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("createdAt").descending());
+        if (role.equals("ROLE_STAFF")) {
+            return ResponseEntity.ok(invoiceService.getStaffPayments(email, pageable));
+        } else {
+            return ResponseEntity.ok(invoiceService.getAllPayments(pageable));
+        }
     }
 
     @PatchMapping("/payments/{id}/status")

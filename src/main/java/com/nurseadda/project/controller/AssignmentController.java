@@ -4,13 +4,18 @@ import com.nurseadda.project.dto.request.AssignmentRequest;
 import com.nurseadda.project.dto.request.AssignmentStatusUpdate;
 import com.nurseadda.project.dto.request.StaffingRequestDto;
 import com.nurseadda.project.dto.response.AssignmentResponse;
+import com.nurseadda.project.dto.response.PageResponse;
 import com.nurseadda.project.dto.response.StaffDetailsResponse;
 import com.nurseadda.project.dto.response.StaffingRequestResponse;
 import com.nurseadda.project.enums.AssignmentStatus;
+import com.nurseadda.project.enums.RequestType;
 import com.nurseadda.project.enums.StaffingRequestStatus;
 import com.nurseadda.project.service.AssignmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -78,51 +83,58 @@ public class AssignmentController {
     }
 
     @GetMapping("/staffing-requests")
-    public ResponseEntity<List<StaffingRequestResponse>> getMyStaffingRequests(Authentication authentication) {
+    public ResponseEntity<?> getMyStaffingRequests(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) RequestType requestType
+    ) {
         String email = (String) authentication.getPrincipal();
         String role = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .findFirst().orElse("");
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("createdAt").descending());
 
-        List<StaffingRequestResponse> responses;
         if (role.equals("ROLE_ADMIN") || role.equals("ROLE_SUPER_ADMIN")) {
-            responses = assignmentService.getAllStaffingRequests();
+            return ResponseEntity.ok(assignmentService.getAllStaffingRequests(requestType, pageable));
         } else {
-            responses = assignmentService.getClientStaffingRequests(email);
+            return ResponseEntity.ok(assignmentService.getClientStaffingRequests(email, requestType, pageable));
         }
-        return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/staffing-requests/status/{status}")
-    public ResponseEntity<List<StaffingRequestResponse>> getStaffingRequestsByStatus(
+    public ResponseEntity<?> getStaffingRequestsByStatus(
             Authentication authentication,
-            @PathVariable String status
+            @PathVariable String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) RequestType requestType
     ) {
         String role = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .findFirst().orElse("");
-        // FIX 3: Only admin can filter by status
         if (!role.equals("ROLE_ADMIN") && !role.equals("ROLE_SUPER_ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        List<StaffingRequestResponse> responses = assignmentService.getStaffingRequestsByStatus(status);
-        return ResponseEntity.ok(responses);
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100));
+        return ResponseEntity.ok(assignmentService.getStaffingRequestsByStatus(status, requestType, pageable));
     }
 
     @GetMapping("/staffing-requests/pending")
-    public ResponseEntity<List<StaffingRequestResponse>> getPendingRequestsForStaff(
-            Authentication authentication
+    public ResponseEntity<?> getPendingRequestsForStaff(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) RequestType requestType
     ) {
         String email = (String) authentication.getPrincipal();
         String role = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .findFirst().orElse("");
-        // Only staff can see pending requests
         if (!role.equals("ROLE_STAFF")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        List<StaffingRequestResponse> responses = assignmentService.getPendingRequestsForStaff(email);
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(assignmentService.getPendingRequestsForStaff(email, requestType));
     }
 
     @PostMapping("/staffing-requests/{id}/accept")
@@ -171,22 +183,25 @@ public class AssignmentController {
     }
 
     @GetMapping("/assignments")
-    public ResponseEntity<List<AssignmentResponse>> getAssignments(Authentication authentication) {
+    public ResponseEntity<?> getAssignments(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) RequestType requestType
+    ) {
         String email = (String) authentication.getPrincipal();
         String role = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .findFirst().orElse("");
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("createdAt").descending());
 
-        List<AssignmentResponse> responses;
         if (role.equals("ROLE_STAFF")) {
-            responses = assignmentService.getStaffAssignments(email);
+            return ResponseEntity.ok(assignmentService.getStaffAssignments(email, pageable));
         } else if (role.equals("ROLE_ADMIN") || role.equals("ROLE_SUPER_ADMIN")) {
-            responses = assignmentService.getAllAssignments();
+            return ResponseEntity.ok(assignmentService.getAllAssignments(requestType, pageable));
         } else {
-            // FIX 4: Client sees their own assignments
-            responses = assignmentService.getClientAssignments(email);
+            return ResponseEntity.ok(assignmentService.getClientAssignments(email, requestType, pageable));
         }
-        return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/assignments/{id}")
@@ -242,11 +257,13 @@ public class AssignmentController {
     }
 
     @GetMapping("/assignments/my-clients")
-    public ResponseEntity<List<AssignmentResponse>> getMyClientAssignments(
-            Authentication authentication
+    public ResponseEntity<?> getMyClientAssignments(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
     ) {
         String email = (String) authentication.getPrincipal();
-        List<AssignmentResponse> responses = assignmentService.getClientAssignments(email);
-        return ResponseEntity.ok(responses);
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100));
+        return ResponseEntity.ok(assignmentService.getClientAssignments(email, pageable));
     }
 }
