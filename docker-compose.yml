@@ -1,0 +1,99 @@
+services:
+  # ─────────────────────────────────────────────
+  # MySQL Database
+  # ─────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: nurseadda-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: nurseadda
+      MYSQL_USER: nurseadda
+      MYSQL_PASSWORD: 1234
+    ports:
+      - "3307:3307"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # Redis
+  # ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: nurseadda-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # Spring Boot Application
+  # ─────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nurseadda-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/nurseadda?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: nurseadda
+      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+
+      # JWT (change in production!)
+      JWT_SECRET: your-256-bit-secret-key-here-change-in-production
+      JWT_VALIDITY_ACCESSTOKEN: 3600000
+      JWT_VALIDITY_REFRESHTOKEN: 604800000
+
+      # Upload directory
+      APP_UPLOAD_DIR: /app/uploads
+
+      # OTP settings
+      APP_OTP_LENGTH: 6
+      APP_OTP_EXPIRY_MINUTES: 10
+
+      # Security settings
+      SECURITY_LOGIN_MAX_ATTEMPTS: 5
+      SECURITY_LOGIN_LOCK_DURATION_MINUTES: 30
+
+      # Razorpay (optional — leave blank to disable)
+      RAZORPAY_KEY_ID: ""
+      RAZORPAY_KEY_SECRET: ""
+
+      # Resend Email (optional)
+      RESEND_API_KEY: ""
+
+      # JVM options
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseContainerSupport"
+    volumes:
+      - upload_data:/app/uploads
+
+volumes:
+  mysql_data:
+  redis_data:
+  upload_data:
