@@ -35,7 +35,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             } ${rightIcon ? 'pr-10' : ''} ${
               error
                 ? 'border-rose-500 focus:ring-rose-200 dark:focus:ring-rose-900/50'
-                : 'border-slate-200 dark:border-slate-800 focus:border-sky-500 focus:ring-sky-100 dark:focus:ring-sky-900/40'
+                : 'border-slate-200 dark:border-slate-800 focus:border-amber-500 focus:ring-amber-100 dark:focus:ring-amber-900/40'
             } ${className}`}
             {...props}
           />

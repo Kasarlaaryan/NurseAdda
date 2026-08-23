@@ -4,8 +4,14 @@ import { useAuthStore } from '../store/useAuthStore';
 import { tokenStorage } from '../services/apiClient';
 import { Loader } from '../components/common/Loader';
 
+/**
+ * Routes that staff with an incomplete profile are allowed to visit.
+ * Everything else redirects to /complete-profile.
+ */
+const STAFF_PROFILE_ROUTES = ['/complete-profile', '/profile', '/login'];
+
 export const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, fetchCurrentUser } = useAuthStore();
+  const { isAuthenticated, user, fetchCurrentUser } = useAuthStore();
   const location = useLocation();
   const [checking, setChecking] = useState(!isAuthenticated);
 
@@ -28,6 +34,15 @@ export const ProtectedRoute: React.FC = () => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Enforce profile completion for staff users
+  if (
+    user?.role === 'ROLE_STAFF' &&
+    user?.isProfileComplete === false &&
+    !STAFF_PROFILE_ROUTES.includes(location.pathname)
+  ) {
+    return <Navigate to="/complete-profile" replace />;
   }
 
   return <Outlet />;

@@ -21,6 +21,7 @@ import {
   Shield,
   Clock
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 /** Map backend role to display label */
 function roleLabel(role: string) {
@@ -50,10 +51,6 @@ export const UserManagementPage: React.FC = () => {
     );
   });
 
-  const handleCreateUser = () => {
-    // Placeholder — registration flow handles user creation
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-40">
@@ -68,9 +65,11 @@ export const UserManagementPage: React.FC = () => {
         title="Portal User Management"
         description="Manage facility administrators, client coordinators, and internal system users."
         actions={
-          <Button variant="primary" size="sm" leftIcon={<UserPlus className="w-4 h-4" />} onClick={handleCreateUser} disabled>
-            Add New User
-          </Button>
+          <Link to="/users/create-admin">
+            <Button variant="primary" size="sm" leftIcon={<UserPlus className="w-4 h-4" />}>
+              Create Admin Account
+            </Button>
+          </Link>
         }
       />
 
@@ -78,7 +77,7 @@ export const UserManagementPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <UserCog className="w-5 h-5" />
             </div>
             <div>

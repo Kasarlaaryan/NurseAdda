@@ -8,7 +8,7 @@ export const AboutPage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-20">
       <div className="max-w-7xl mx-auto px-4 pb-20">
         <div className="mb-16 text-center max-w-3xl mx-auto">
-          <span className="px-4 py-1.5 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100 dark:border-sky-500/20">
+          <span className="px-4 py-1.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 text-[10px] font-black uppercase tracking-widest border border-amber-100 dark:border-amber-500/20">
             Our Mission
           </span>
           <h1 className="mt-6 text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -30,7 +30,7 @@ export const AboutPage: React.FC = () => {
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                <p className="text-2xl font-black text-sky-600">10k+</p>
+                <p className="text-2xl font-black text-amber-600">10k+</p>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Professionals</p>
               </div>
               <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
@@ -40,7 +40,7 @@ export const AboutPage: React.FC = () => {
             </div>
           </div>
           <div className="aspect-square bg-white dark:bg-slate-900 rounded-[48px] border-8 border-slate-100 dark:border-slate-800 shadow-2xl flex items-center justify-center p-12">
-            <Activity className="w-32 h-32 text-sky-600/20" />
+            <Activity className="w-32 h-32 text-amber-600/20" />
           </div>
         </div>
 
@@ -77,16 +77,16 @@ export const AboutPage: React.FC = () => {
           ))}
         </div>
 
-        <div className="p-12 rounded-[48px] bg-sky-600 text-white text-center">
+        <div className="p-12 rounded-[48px] bg-amber-600 text-white text-center">
           <h2 className="text-3xl font-black mb-6">Ready to join our network?</h2>
-          <p className="text-sky-100 font-medium mb-10 max-w-xl mx-auto">
+          <p className="text-amber-100 font-medium mb-10 max-w-xl mx-auto">
             Whether you're a hospital looking for staff or a nurse looking for assignments, we have the tools you need.
           </p>
           <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-            <button className="h-14 px-10 bg-white text-sky-600 rounded-2xl font-black text-lg shadow-xl shadow-sky-900/20">
+            <button className="h-14 px-10 bg-white text-amber-600 rounded-2xl font-black text-lg shadow-xl shadow-amber-900/20">
               Register Now
             </button>
-            <button className="h-14 px-10 bg-sky-700 text-white rounded-2xl font-bold text-lg border border-sky-500">
+            <button className="h-14 px-10 bg-amber-700 text-white rounded-2xl font-bold text-lg border border-amber-500">
               Contact Sales
             </button>
           </div>

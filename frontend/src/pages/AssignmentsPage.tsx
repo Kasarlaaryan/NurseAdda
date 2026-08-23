@@ -102,6 +102,16 @@ export const AssignmentsPage: React.FC = () => {
                         <MapPin className="w-3 h-3 text-slate-400" />
                         <span className="text-xs">{asg.location}</span>
                       </div>
+                      {asg.locationLink && (
+                        <a
+                          href={asg.locationLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] font-bold text-amber-500 hover:text-amber-600 hover:underline"
+                        >
+                          📍 Map
+                        </a>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">

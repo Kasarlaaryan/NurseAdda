@@ -226,13 +226,13 @@ export const ClientRegisterPage: React.FC = () => {
             <input
               type="checkbox"
               required
-              className="rounded border-slate-700 bg-slate-800 text-sky-500 focus:ring-sky-500"
+              className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
             />
           </div>
           <p className="text-[10px] text-slate-500 leading-relaxed">
             I agree to NurseAdda's{' '}
-            <span className="text-sky-400 hover:underline cursor-pointer">Terms of Service</span> and{' '}
-            <span className="text-sky-400 hover:underline cursor-pointer">Privacy Policy</span>.
+            <span className="text-amber-400 hover:underline cursor-pointer">Terms of Service</span> and{' '}
+            <span className="text-amber-400 hover:underline cursor-pointer">Privacy Policy</span>.
           </p>
         </div>
 
@@ -249,7 +249,7 @@ export const ClientRegisterPage: React.FC = () => {
 
         <div className="text-center text-xs text-slate-500">
           Already have an account?{' '}
-          <Link to="/login" className="text-sky-400 font-bold hover:underline">
+          <Link to="/login" className="text-amber-400 font-bold hover:underline">
             Log In
           </Link>
         </div>

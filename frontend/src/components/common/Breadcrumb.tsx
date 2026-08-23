@@ -10,7 +10,7 @@ export const Breadcrumb: React.FC = () => {
     <nav className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400 py-2">
       <Link
         to="/dashboard"
-        className="flex items-center gap-1 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+        className="flex items-center gap-1 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
       >
         <Home className="w-3.5 h-3.5" />
         <span>NurseAdda</span>
@@ -30,7 +30,7 @@ export const Breadcrumb: React.FC = () => {
             ) : (
               <Link
                 to={routeTo}
-                className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
               >
                 {formattedName}
               </Link>

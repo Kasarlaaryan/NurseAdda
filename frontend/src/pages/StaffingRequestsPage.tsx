@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../components/layouts/PageHeader';
 import { Card, CardHeader, CardContent } from '../components/common/Card';
@@ -23,7 +24,6 @@ import {
   UserCheck,
   AlertTriangle,
   UserPlus,
-  FileText,
   Clock,
   MapPin,
 } from 'lucide-react';
@@ -43,12 +43,12 @@ function statusDisplay(status: string) {
 }
 
 export const StaffingRequestsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { activeRole } = useAuthStore();
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<StaffingRequestResponse | null>(null);
 
   const isUserRole = activeRole === 'ROLE_USER';
@@ -74,19 +74,6 @@ export const StaffingRequestsPage: React.FC = () => {
     enabled: Boolean(selectedRequest),
   });
 
-  // ─── Create staffing request mutation ────────────────
-  const createMutation = useMutation({
-    mutationFn: staffingRequestService.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['staffing-requests'] });
-      setIsModalOpen(false);
-      showToast('success', 'Request Created', 'Staffing request has been broadcast to available staff.');
-    },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      showToast('error', 'Failed', err?.response?.data?.message || 'Could not create request.');
-    },
-  });
-
   // ─── Accept request mutation (staff) ─────────────────
   const acceptMutation = useMutation({
     mutationFn: (id: number) => staffingRequestService.accept(id),
@@ -97,6 +84,22 @@ export const StaffingRequestsPage: React.FC = () => {
     },
     onError: () => {
       showToast('error', 'Failed', 'Could not accept request.');
+    },
+  });
+
+  // ─── Cancel request mutation (client) ────────────────
+  const cancelMutation = useMutation({
+    mutationFn: (id: number) => staffingRequestService.cancel(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['staffing-requests'] });
+      const refundMsg = data.refunded
+        ? ` ${data.refundPercentage}% refund (₹${data.refundAmount}) processed via Razorpay.`
+        : ' No advance payment to refund.';
+      showToast('success', 'Request Cancelled', `Staffing request has been cancelled.${refundMsg}`);
+      setSelectedRequest(null);
+    },
+    onError: (err: { response?: { data?: { message?: string } } }) => {
+      showToast('error', 'Failed', err?.response?.data?.message || 'Could not cancel request.');
     },
   });
 
@@ -112,30 +115,6 @@ export const StaffingRequestsPage: React.FC = () => {
       r.location?.toLowerCase().includes(q)
     );
   });
-
-  // ─── New Request Form State ──────────────────────────
-  const [formDesignation, setFormDesignation] = useState('Registered Nurse (RN)');
-  const [formLocation, setFormLocation] = useState('');
-  const [formRequestType, setFormRequestType] = useState<'ON_CALL' | 'MONTHLY'>('ON_CALL');
-  const [formShift, setFormShift] = useState('Night Shift');
-  const [formStartDate, setFormStartDate] = useState('');
-  const [formEndDate, setFormEndDate] = useState('');
-  const [formNumberOfStaff, setFormNumberOfStaff] = useState(1);
-  const [formRequiredSkills, setFormRequiredSkills] = useState('');
-
-  const handleCreateRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate({
-      designation: formDesignation,
-      location: formLocation,
-      requestType: formRequestType,
-      shift: formShift,
-      startDate: formStartDate,
-      endDate: formEndDate,
-      numberOfStaff: formNumberOfStaff,
-      requiredSkills: formRequiredSkills,
-    });
-  };
 
   const handleAcceptRequest = (requestId: number) => {
     acceptMutation.mutate(requestId);
@@ -156,7 +135,7 @@ export const StaffingRequestsPage: React.FC = () => {
               variant="primary"
               size="sm"
               leftIcon={<Plus className="w-4 h-4" />}
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => navigate('/requests/create')}
             >
               New Staffing Request
             </Button>
@@ -209,6 +188,17 @@ export const StaffingRequestsPage: React.FC = () => {
                       <MapPin className="w-3 h-3 text-slate-400" />
                       <p className="text-xs text-slate-500">{req.location}</p>
                     </div>
+                    {req.locationLink && (
+                      <a
+                        href={req.locationLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-500 hover:text-amber-600 hover:underline mt-1"
+                      >
+                        <MapPin className="w-3 h-3" />
+                        Open on Google Maps
+                      </a>
+                    )}
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1.5 text-xs">
@@ -228,11 +218,39 @@ export const StaffingRequestsPage: React.FC = () => {
                         {req.startDate} → {req.endDate}
                       </span>
                     </div>
+                    {req.startTime && req.endTime && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Time:</span>
+                        <span className="font-medium">
+                          {req.startTime} → {req.endTime}
+                        </span>
+                      </div>
+                    )}
                     {req.estimatedTotal > 0 && (
                       <div className="flex justify-between">
                         <span className="text-slate-500">Est. Total:</span>
                         <span className="font-bold text-emerald-600">
                           ₹{req.estimatedTotal.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    {req.hourlyBillingRate > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Billing Rate:</span>
+                        <span className="font-medium">₹{req.hourlyBillingRate}/hr</span>
+                      </div>
+                    )}
+                    {req.hourlyPayRate > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Pay Rate:</span>
+                        <span className="font-medium">₹{req.hourlyPayRate}/hr</span>
+                      </div>
+                    )}
+                    {req.advanceAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Advance (40%):</span>
+                        <span className="font-bold text-amber-600">
+                          ₹{req.advanceAmount.toLocaleString()}
                         </span>
                       </div>
                     )}
@@ -306,7 +324,19 @@ export const StaffingRequestsPage: React.FC = () => {
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-500">Location:</span>
-                <span className="font-medium">{selectedRequest.location}</span>
+                <div>
+                  <span className="font-medium">{selectedRequest.location}</span>
+                  {selectedRequest.locationLink && (
+                    <a
+                      href={selectedRequest.locationLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-[10px] font-bold text-amber-500 hover:text-amber-600 hover:underline mt-0.5"
+                    >
+                      📍 Open on Google Maps
+                    </a>
+                  )}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Shift:</span>
@@ -318,10 +348,42 @@ export const StaffingRequestsPage: React.FC = () => {
                   {selectedRequest.startDate} → {selectedRequest.endDate}
                 </span>
               </div>
+              {selectedRequest.startTime && selectedRequest.endTime && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Time:</span>
+                  <span className="font-medium">
+                    {selectedRequest.startTime} → {selectedRequest.endTime}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-500">Staff Needed:</span>
                 <span className="font-semibold">{selectedRequest.numberOfStaff}</span>
               </div>
+              {selectedRequest.hourlyBillingRate > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Billing Rate:</span>
+                  <span className="font-medium">₹{selectedRequest.hourlyBillingRate}/hr</span>
+                </div>
+              )}
+              {selectedRequest.hourlyPayRate > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Pay Rate:</span>
+                  <span className="font-medium">₹{selectedRequest.hourlyPayRate}/hr</span>
+                </div>
+              )}
+              {selectedRequest.estimatedTotal > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Est. Total:</span>
+                  <span className="font-bold text-emerald-600">₹{selectedRequest.estimatedTotal.toLocaleString()}</span>
+                </div>
+              )}
+              {selectedRequest.advanceAmount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Advance (40%):</span>
+                  <span className="font-bold text-amber-600">₹{selectedRequest.advanceAmount.toLocaleString()}</span>
+                </div>
+              )}
             </div>
 
             {/* Admin actions */}
@@ -359,6 +421,56 @@ export const StaffingRequestsPage: React.FC = () => {
                 >
                   Reject
                 </Button>
+              </div>
+            )}
+
+            {/* Client cancel */}
+            {isUserRole && (selectedRequest.status === 'PENDING' || selectedRequest.status === 'APPROVED') && (
+              <div className="space-y-2">
+                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/30 text-[11px] text-red-700 dark:text-red-400">
+                  <p className="font-bold mb-1">Cancellation Policy:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>Cancel <strong>30+ min before</strong> shift: <strong>80% refund</strong>, 20% penalty</li>
+                    <li>Cancel <strong>within 30 min</strong> of shift: <strong>20% refund</strong>, 80% penalty</li>
+                    <li>Cancel <strong>after shift starts</strong>: No refund</li>
+                  </ul>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 border border-red-200 dark:border-red-800/30"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to cancel this request? A refund will be processed based on the cancellation policy.')) {
+                      cancelMutation.mutate(selectedRequest.id);
+                    }
+                  }}
+                  isLoading={cancelMutation.isPending}
+                >
+                  Cancel Request
+                </Button>
+              </div>
+            )}
+
+            {/* Refund info */}
+            {selectedRequest.refunded && (
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 space-y-1 text-xs">
+                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                  <span className="font-bold">Refund Processed</span>
+                </div>
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-300">
+                  <span>Refund Percentage:</span>
+                  <span className="font-bold">{selectedRequest.refundPercentage}%</span>
+                </div>
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-300">
+                  <span>Refund Amount:</span>
+                  <span className="font-bold">₹{selectedRequest.refundAmount?.toLocaleString()}</span>
+                </div>
+                {selectedRequest.razorpayRefundId && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-300">
+                    <span>Refund ID:</span>
+                    <span className="font-mono text-[10px]">{selectedRequest.razorpayRefundId}</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -462,128 +574,6 @@ export const StaffingRequestsPage: React.FC = () => {
         </Modal>
       )}
 
-      {/* ─── Create Request Modal ────────────────────── */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="New Staffing Request"
-        maxWidth="lg"
-      >
-        <form onSubmit={handleCreateRequest} className="space-y-4">
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
-              Designation / Role
-            </label>
-            <select
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm p-2.5"
-              value={formDesignation}
-              onChange={(e) => setFormDesignation(e.target.value)}
-              required
-            >
-              {[
-                'Registered Nurse (RN)',
-                'Nurse Practitioner (NP)',
-                'Licensed Practical Nurse (LPN)',
-                'General Nursing and Midwifery (GNM)',
-                'Auxiliary Nurse Midwifery (ANM)',
-                'Physiotherapist',
-                'Medical Lab Technician',
-              ].map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <Input
-            label="Location"
-            value={formLocation}
-            onChange={(e) => setFormLocation(e.target.value)}
-            placeholder="e.g. City Hospital - ICU Wing"
-            required
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
-                Request Type
-              </label>
-              <select
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm p-2.5"
-                value={formRequestType}
-                onChange={(e) => setFormRequestType(e.target.value as 'ON_CALL' | 'MONTHLY')}
-              >
-                <option value="ON_CALL">On-Call</option>
-                <option value="MONTHLY">Monthly</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-1">
-                Shift
-              </label>
-              <select
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm p-2.5"
-                value={formShift}
-                onChange={(e) => setFormShift(e.target.value)}
-              >
-                <option value="Day Shift">Day Shift</option>
-                <option value="Night Shift">Night Shift</option>
-                <option value="24hr On-Call">24hr On-Call</option>
-                <option value="Rotational">Rotational</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Start Date"
-              type="date"
-              value={formStartDate}
-              onChange={(e) => setFormStartDate(e.target.value)}
-              required
-            />
-            <Input
-              label="End Date"
-              type="date"
-              value={formEndDate}
-              onChange={(e) => setFormEndDate(e.target.value)}
-              required
-            />
-          </div>
-
-          <Input
-            label="Number of Staff Needed"
-            type="number"
-            min={1}
-            max={50}
-            value={formNumberOfStaff}
-            onChange={(e) => setFormNumberOfStaff(Number(e.target.value))}
-            required
-          />
-
-          <Input
-            label="Required Skills (comma-separated)"
-            value={formRequiredSkills}
-            onChange={(e) => setFormRequiredSkills(e.target.value)}
-            placeholder="e.g. Critical Care, ICU, BLS Certification"
-          />
-
-          <div className="pt-3 flex justify-end gap-2">
-            <Button variant="ghost" size="sm" type="button" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              type="submit"
-              isLoading={createMutation.isPending}
-            >
-              Create Request
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 };

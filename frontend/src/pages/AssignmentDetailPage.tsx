@@ -128,7 +128,7 @@ export const AssignmentDetailPage: React.FC = () => {
             <CardHeader className="border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-500">
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500">
                     <ClipboardCheck className="w-6 h-6" />
                   </div>
                   <CardTitle>Assignment Details</CardTitle>
@@ -164,6 +164,17 @@ export const AssignmentDetailPage: React.FC = () => {
                       <p className="text-sm font-bold text-slate-900 dark:text-white">
                         {assignment.location}
                       </p>
+                      {assignment.locationLink && (
+                        <a
+                          href={assignment.locationLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold text-amber-500 hover:text-amber-600 hover:underline"
+                        >
+                          <MapPin className="w-3 h-3" />
+                          Open on Google Maps
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -202,7 +213,7 @@ export const AssignmentDetailPage: React.FC = () => {
               {assignment.notes && (
                 <div className="mt-8 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2 mb-3">
-                    <FileText className="w-4 h-4 text-sky-500" />
+                    <FileText className="w-4 h-4 text-amber-500" />
                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">
                       Notes
                     </h4>
@@ -320,6 +331,49 @@ export const AssignmentDetailPage: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* OTP Display for Client */}
+          {!isStaff && assignment.status === 'ACTIVE' && (
+            <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-amber-600" />
+                  <h4 className="text-xs font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
+                    Staff Verification OTPs
+                  </h4>
+                </div>
+
+                {/* Check-In OTP */}
+                {assignment.checkInOtpPending && assignment.checkInOtp && (
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Check-In OTP</p>
+                    <p className="text-2xl font-mono font-black text-amber-600 dark:text-amber-400 tracking-[0.3em]">
+                      {assignment.checkInOtp}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">Share this with the staff member</p>
+                  </div>
+                )}
+
+                {/* Check-Out OTP */}
+                {assignment.checkOutOtpPending && assignment.checkOutOtp && (
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Check-Out OTP</p>
+                    <p className="text-2xl font-mono font-black text-rose-600 dark:text-rose-400 tracking-[0.3em]">
+                      {assignment.checkOutOtp}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1">Share this with the staff member</p>
+                  </div>
+                )}
+
+                {/* No pending OTPs */}
+                {!assignment.checkInOtpPending && !assignment.checkOutOtpPending && (
+                  <p className="text-xs text-slate-500 text-center py-2">
+                    No pending OTPs. OTPs appear here when staff requests check-in or check-out.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Status Actions */}
           <div className="flex flex-col gap-3">
             {isStaff && (
@@ -380,7 +434,7 @@ export const AssignmentDetailPage: React.FC = () => {
       >
         <div className="space-y-4 py-2">
           <div className="flex flex-col items-center text-center space-y-3">
-            <div className="w-16 h-16 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-sky-600">
+            <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
               <KeyRound className="w-8 h-8" />
             </div>
             <div>
@@ -389,7 +443,7 @@ export const AssignmentDetailPage: React.FC = () => {
               </p>
               <p className="text-xs text-slate-500 mt-1">
                 You are about to change this assignment to{' '}
-                <span className="font-bold text-sky-500">{targetStatus}</span>.
+                <span className="font-bold text-amber-500">{targetStatus}</span>.
               </p>
             </div>
           </div>

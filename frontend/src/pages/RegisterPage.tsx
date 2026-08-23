@@ -18,19 +18,19 @@ export const RegisterPage: React.FC = () => {
       <div className="grid grid-cols-1 gap-4">
         <Link
           to="/register-staff"
-          className="group relative p-5 rounded-2xl border border-slate-800 bg-slate-800/40 text-left transition-all hover:border-sky-500 hover:bg-sky-500/5"
+          className="group relative p-5 rounded-2xl border border-slate-800 bg-slate-800/40 text-left transition-all hover:border-amber-500 hover:bg-amber-500/5"
         >
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Stethoscope className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-black text-slate-100 group-hover:text-sky-400 transition-colors">
+              <h3 className="text-sm font-black text-slate-100 group-hover:text-amber-400 transition-colors">
                 Healthcare Professional
               </h3>
               <p className="text-[11px] text-slate-500 mt-0.5">I am a Nurse, ANM, or GNM looking for shifts.</p>
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-sky-500" />
+            <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-amber-500" />
           </div>
         </Link>
 
@@ -57,7 +57,7 @@ export const RegisterPage: React.FC = () => {
 
       <div className="text-center text-xs text-slate-500">
         Already have an account?{' '}
-        <Link to="/login" className="text-sky-400 font-bold hover:underline">
+        <Link to="/login" className="text-amber-400 font-bold hover:underline">
           Log In
         </Link>
       </div>

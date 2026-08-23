@@ -22,7 +22,14 @@ export const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       showToast('success', 'Login Successful', 'Welcome back!');
-      navigate('/dashboard');
+
+      // After login, check if staff user needs to complete profile
+      const { user } = useAuthStore.getState();
+      if (user?.role === 'ROLE_STAFF' && user?.isProfileComplete === false) {
+        navigate('/complete-profile');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -63,10 +70,10 @@ export const LoginPage: React.FC = () => {
 
         <div className="flex items-center justify-between text-xs">
           <label className="flex items-center gap-2 text-slate-400 cursor-pointer select-none">
-            <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-slate-800 text-sky-500 focus:ring-sky-500" />
+            <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500" />
             <span>Remember device</span>
           </label>
-          <Link to="/forgot-password" className="text-sky-400 hover:underline font-semibold">
+          <Link to="/forgot-password" className="text-amber-400 hover:underline font-semibold">
             Forgot Password?
           </Link>
         </div>
@@ -75,7 +82,7 @@ export const LoginPage: React.FC = () => {
           type="submit"
           variant="primary"
           size="lg"
-          className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold"
+          className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold"
           isLoading={isLoading}
           rightIcon={<ArrowRight className="w-4 h-4" />}
         >
@@ -84,14 +91,14 @@ export const LoginPage: React.FC = () => {
 
         <div className="text-center text-xs text-slate-400">
           New to NurseAdda?{' '}
-          <Link to="/register" className="text-sky-400 hover:underline font-bold">
+          <Link to="/register" className="text-amber-400 hover:underline font-bold">
             Create Account
           </Link>
         </div>
       </form>
 
       <div className="pt-2 border-t border-slate-800/80 text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
-        <ShieldCheck className="w-4 h-4 text-sky-400" />
+        <ShieldCheck className="w-4 h-4 text-amber-400" />
         <span>Encrypted SSL 256-Bit Connection</span>
       </div>
     </div>

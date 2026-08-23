@@ -14,6 +14,7 @@ import {
   StaffingRequestResponse,
 } from '../services/assignmentService';
 import { invoiceService, InvoiceResponse } from '../services/invoiceService';
+import { staffService } from '../services/staffService';
 import {
   Users,
   Building2,
@@ -25,6 +26,12 @@ import {
   Plus,
   ArrowRight,
   Calendar,
+  ShieldCheck,
+  AlertCircle,
+  AlertTriangle,
+  FileCheck,
+  Upload,
+  RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -62,9 +69,29 @@ export const DashboardPage: React.FC = () => {
     (a: AssignmentResponse) => a.status === 'PENDING' || a.status === 'ACCEPTED'
   );
 
+  // Staff profile verification status
+  const { data: staffProfile } = useQuery({
+    queryKey: ['my-staff-profile'],
+    queryFn: () => staffService.getMyProfile(),
+    enabled: activeRole === 'ROLE_STAFF',
+    retry: false,
+  });
+
   const isAdmin = activeRole === 'ROLE_SUPER_ADMIN' || activeRole === 'ROLE_ADMIN';
   const isStaff = activeRole === 'ROLE_STAFF';
   const isClient = activeRole === 'ROLE_USER';
+
+  const staffProfileIncomplete = isStaff && user?.isProfileComplete === false;
+
+  // Check if documents have been submitted
+  const hasSubmittedDocuments = staffProfile && (
+    staffProfile.stateBoardCertificatePath ||
+    (staffProfile.educationalDocumentPaths && staffProfile.educationalDocumentPaths.length > 0) ||
+    (staffProfile.photoPaths && staffProfile.photoPaths.length > 0)
+  );
+
+  const staffVerificationPending = isStaff && staffProfile && !staffProfile.verified && hasSubmittedDocuments;
+  const staffVerified = isStaff && staffProfile?.verified === true;
 
   const isLoading = loadingRequests || loadingAssignments || loadingInvoices;
 
@@ -99,6 +126,127 @@ export const DashboardPage: React.FC = () => {
         }
       />
 
+      {/* ─── Staff Verification Status Banner ───────── */}
+      {isStaff && staffProfileIncomplete && (
+        <Card className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shrink-0">
+                <Upload className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                  Complete Your Profile
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Upload your documents to start receiving staffing assignments.
+                </p>
+              </div>
+            </div>
+            <Link to="/complete-profile">
+              <Button variant="primary" size="sm" leftIcon={<Upload className="w-4 h-4" />}>
+                Complete Now
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {isStaff && staffVerificationPending && (
+        <Card className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shrink-0">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                  Verification Pending
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Your documents are under review. You'll be notified once verified.
+                </p>
+              </div>
+            </div>
+            <Badge variant="warning" size="md" dot>
+              Pending
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
+
+      {isStaff && staffVerified && (
+        <Card className="border-l-4 border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                  Profile Verified
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Your credentials are approved. You can accept staffing assignments.
+                </p>
+              </div>
+            </div>
+            <Badge variant="success" size="md" dot>
+              Verified
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* License Expiry Warning */}
+      {isStaff && staffVerified && staffProfile?.licenseStatus === 'EXPIRED' && (
+        <Card className="border-l-4 border-l-rose-500 bg-rose-50/50 dark:bg-rose-950/20">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-900/40 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                  License Expired
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Your professional license has expired. Please renew to continue receiving assignments.
+                </p>
+              </div>
+            </div>
+            <Link to="/complete-profile">
+              <Button variant="danger" size="sm" leftIcon={<RefreshCw className="w-4 h-4" />}>
+                Renew Now
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {isStaff && staffVerified && staffProfile?.licenseStatus === 'EXPIRING_SOON' && (
+        <Card className="border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                  License Expiring Soon
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Your license expires on {staffProfile.licenseValidityDate}. Please renew before it expires.
+                </p>
+              </div>
+            </div>
+            <Badge variant="warning" size="md" dot>
+              Expiring Soon
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ─── Key Metrics Grid ────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card hoverable>
@@ -115,7 +263,7 @@ export const DashboardPage: React.FC = () => {
                 <span>Total</span>
               </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
               <ClipboardList className="w-6 h-6" />
             </div>
           </CardContent>
@@ -130,12 +278,12 @@ export const DashboardPage: React.FC = () => {
               <p className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">
                 {ongoingAssignments.length}
               </p>
-              <div className="flex items-center gap-1 mt-1 text-sky-600 dark:text-sky-400 font-semibold text-xs">
+              <div className="flex items-center gap-1 mt-1 text-amber-600 dark:text-amber-400 font-semibold text-xs">
                 <Calendar className="w-3.5 h-3.5" />
                 <span>Ongoing</span>
               </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
               <Users className="w-6 h-6" />
             </div>
           </CardContent>
@@ -189,7 +337,7 @@ export const DashboardPage: React.FC = () => {
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
-                <ClipboardList className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                <ClipboardList className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 <CardTitle>
                   {isStaff ? 'Available Requests' : 'Recent Staffing Demands'}
                 </CardTitle>
@@ -232,6 +380,16 @@ export const DashboardPage: React.FC = () => {
                       </span>{' '}
                       &bull; {req.location}
                     </p>
+                    {req.locationLink && (
+                      <a
+                        href={req.locationLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-bold text-amber-500 hover:text-amber-600 hover:underline"
+                      >
+                        📍 Open on Google Maps
+                      </a>
+                    )}
                     <div className="text-[11px] text-slate-400 flex items-center gap-2">
                       <span>{req.shift}</span>
                       <span>&bull;</span>
@@ -259,7 +417,7 @@ export const DashboardPage: React.FC = () => {
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 <CardTitle>Recent Assignments</CardTitle>
               </div>
               <Link to="/assignments">
@@ -317,7 +475,7 @@ export const DashboardPage: React.FC = () => {
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                <DollarSign className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 <CardTitle>Recent Invoices</CardTitle>
               </div>
               <Link to="/invoices">

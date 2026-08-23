@@ -17,20 +17,36 @@ export interface AttendanceResponse {
 }
 
 export const attendanceService = {
-  /** Staff check-in */
+  /** Request OTP for check-in — sends OTP to client email */
+  requestCheckInOtp: async (assignmentId: number): Promise<string> => {
+    const response = await apiClient.post<string>('/attendance/request-otp', null, {
+      params: { assignmentId },
+    });
+    return response.data;
+  },
+
+  /** Staff check-in with OTP verification */
   checkIn: async (data: {
     assignmentId: number;
-    location?: string;
+    otp: string;
     notes?: string;
   }): Promise<AttendanceResponse> => {
     const response = await apiClient.post('/attendance/checkin', data);
     return response.data;
   },
 
-  /** Staff check-out */
+  /** Request checkout OTP — sends OTP to client email */
+  requestCheckOutOtp: async (attendanceId: number): Promise<string> => {
+    const response = await apiClient.post<string>('/attendance/request-checkout-otp', null, {
+      params: { attendanceId },
+    });
+    return response.data;
+  },
+
+  /** Staff check-out with OTP verification */
   checkOut: async (
     attendanceId: number,
-    data?: { notes?: string }
+    data?: { notes?: string; otp?: string }
   ): Promise<AttendanceResponse> => {
     const response = await apiClient.post(`/attendance/checkout/${attendanceId}`, data || {});
     return response.data;

@@ -31,10 +31,12 @@ export const staffService = {
   /** Verify / unverify a staff member (admin) */
   verifyStaff: async (
     userId: number,
-    verified: boolean
+    verified: boolean,
+    rejectionReason?: string
   ): Promise<StaffProfileResponse> => {
     const response = await apiClient.patch(`/auth/staff/${userId}/verification`, {
       verified,
+      rejectionReason: rejectionReason || null,
     });
     return response.data;
   },

@@ -20,19 +20,17 @@ interface AuthState {
     confirmPassword: string;
   }) => Promise<string>;
   registerStaff: (data: {
-    firstName: string;
-    lastName: string;
+    fullName: string;
     email: string;
-    mobileNumber: string;
+    phone: string;
+    staffCategory: string;
     password: string;
-    confirmPassword: string;
   }) => Promise<string>;
   verifyOtp: (email: string, otp: string) => Promise<string>;
   resendOtp: (email: string) => Promise<string>;
   logout: () => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
   setActiveRole: (role: UserRole) => void;
-  switchRole: (role: UserRole) => void;
   completeProfile: () => void;
   setUser: (user: UserResponse) => void;
 }
@@ -147,8 +145,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setActiveRole: (role) => set({ activeRole: role }),
-
-      switchRole: (role) => set({ activeRole: role }),
 
       completeProfile: () => {
         set((state) => ({

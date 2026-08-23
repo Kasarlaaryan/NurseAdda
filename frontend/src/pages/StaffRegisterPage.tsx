@@ -76,12 +76,11 @@ export const StaffRegisterPage: React.FC = () => {
     setIsLoading(true);
     try {
       await registerStaff({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        fullName: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
-        mobileNumber: formData.mobileNumber,
+        phone: formData.mobileNumber,
+        staffCategory: formData.staffCategory,
         password: formData.password,
-        confirmPassword: formData.confirmPassword,
       });
 
       setRegisteredEmail(formData.email);
@@ -145,7 +144,7 @@ export const StaffRegisterPage: React.FC = () => {
       </div>
 
       <div className="text-center space-y-1">
-        <div className="w-14 h-14 rounded-2xl bg-sky-500/10 text-sky-500 flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-4">
           <Stethoscope className="w-7 h-7" />
         </div>
         <h2 className="text-2xl font-black text-white tracking-tight">Healthcare Professional Registration</h2>
@@ -207,7 +206,7 @@ export const StaffRegisterPage: React.FC = () => {
             name="staffCategory"
             value={formData.staffCategory}
             onChange={handleInputChange}
-            className="w-full rounded-xl border border-slate-700 bg-slate-800 text-white text-sm p-2.5 focus:ring-1 focus:ring-sky-500 outline-none"
+            className="w-full rounded-xl border border-slate-700 bg-slate-800 text-white text-sm p-2.5 focus:ring-1 focus:ring-amber-500 outline-none"
           >
             {STAFF_CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
@@ -243,13 +242,13 @@ export const StaffRegisterPage: React.FC = () => {
             <input
               type="checkbox"
               required
-              className="rounded border-slate-700 bg-slate-800 text-sky-500 focus:ring-sky-500"
+              className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
             />
           </div>
           <p className="text-[10px] text-slate-500 leading-relaxed">
             I agree to NurseAdda's{' '}
-            <span className="text-sky-400 hover:underline cursor-pointer">Terms of Service</span> and{' '}
-            <span className="text-sky-400 hover:underline cursor-pointer">Privacy Policy</span>.
+            <span className="text-amber-400 hover:underline cursor-pointer">Terms of Service</span> and{' '}
+            <span className="text-amber-400 hover:underline cursor-pointer">Privacy Policy</span>.
           </p>
         </div>
 
@@ -257,7 +256,7 @@ export const StaffRegisterPage: React.FC = () => {
           type="submit"
           variant="primary"
           size="lg"
-          className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold"
+          className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold"
           isLoading={isLoading}
           rightIcon={<ArrowRight className="w-4 h-4" />}
         >
@@ -266,7 +265,7 @@ export const StaffRegisterPage: React.FC = () => {
 
         <div className="text-center text-xs text-slate-500">
           Already have an account?{' '}
-          <Link to="/login" className="text-sky-400 font-bold hover:underline">
+          <Link to="/login" className="text-amber-400 font-bold hover:underline">
             Log In
           </Link>
         </div>
@@ -293,12 +292,12 @@ export const StaffRegisterPage: React.FC = () => {
       </div>
 
       <div className="text-center space-y-2">
-        <div className="w-16 h-16 rounded-2xl bg-sky-500/10 text-sky-500 flex items-center justify-center mx-auto">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
           <KeyRound className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-black text-white tracking-tight">Verify Your Email</h2>
         <p className="text-xs text-slate-400">
-          We sent a 6-digit OTP to <span className="text-sky-400 font-semibold">{registeredEmail}</span>
+          We sent a 6-digit OTP to <span className="text-amber-400 font-semibold">{registeredEmail}</span>
         </p>
       </div>
 
@@ -318,7 +317,7 @@ export const StaffRegisterPage: React.FC = () => {
           type="submit"
           variant="primary"
           size="lg"
-          className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold"
+          className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold"
           isLoading={isLoading}
           rightIcon={<ArrowRight className="w-4 h-4" />}
         >
@@ -330,7 +329,7 @@ export const StaffRegisterPage: React.FC = () => {
           <button
             type="button"
             onClick={handleResendOtp}
-            className="text-sky-400 font-bold hover:underline"
+            className="text-amber-400 font-bold hover:underline"
           >
             Resend OTP
           </button>

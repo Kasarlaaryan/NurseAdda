@@ -13,6 +13,7 @@ import {
   Settings,
   CalendarCheck,
   ShieldCheck,
+  PlusCircle,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -81,6 +82,12 @@ export const NAVIGATION_ITEMS: NavItem[] = [
     title: 'Staffing Requests',
     href: '/requests',
     icon: ClipboardList,
+    roles: ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_USER']
+  },
+  {
+    title: 'New Staffing Request',
+    href: '/requests/create',
+    icon: PlusCircle,
     roles: ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_USER']
   },
   {

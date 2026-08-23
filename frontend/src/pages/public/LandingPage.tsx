@@ -18,12 +18,12 @@ export const LandingPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="px-4 py-1.5 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100 dark:border-sky-500/20">
+            <span className="px-4 py-1.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 text-[10px] font-black uppercase tracking-widest border border-amber-100 dark:border-amber-500/20">
               Next-Gen Healthcare Staffing
             </span>
             <h1 className="mt-8 text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.1]">
               The Workforce Engine for <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-indigo-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-indigo-600">
                 Modern Healthcare
               </span>
             </h1>
@@ -32,7 +32,7 @@ export const LandingPage: React.FC = () => {
             </p>
             <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-4">
               <Link to="/register">
-                <Button size="lg" className="h-14 px-10 text-lg font-black shadow-xl shadow-sky-500/25" rightIcon={<ChevronRight className="w-5 h-5" />}>
+                <Button size="lg" className="h-14 px-10 text-lg font-black shadow-xl shadow-amber-500/25" rightIcon={<ChevronRight className="w-5 h-5" />}>
                   Join the Network
                 </Button>
               </Link>
@@ -105,7 +105,7 @@ export const LandingPage: React.FC = () => {
                 color: 'indigo'
               }
             ].map((feature, i) => (
-              <div key={i} className="p-8 rounded-[32px] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-sky-500/50 transition-all group">
+              <div key={i} className="p-8 rounded-[32px] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-amber-500/50 transition-all group">
                 <div className={`w-14 h-14 rounded-2xl bg-${feature.color}-50 dark:bg-${feature.color}-500/10 flex items-center justify-center text-${feature.color}-600 mb-6 group-hover:scale-110 transition-transform`}>
                   <feature.icon className="w-7 h-7" />
                 </div>
@@ -124,7 +124,7 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-12">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-6">
-              <Activity className="w-6 h-6 text-sky-600" />
+              <Activity className="w-6 h-6 text-amber-600" />
               <span className="text-xl font-black tracking-tighter">NurseAdda</span>
             </div>
             <p className="text-sm text-slate-500 font-medium leading-relaxed">
@@ -135,27 +135,27 @@ export const LandingPage: React.FC = () => {
           <div>
             <h4 className="font-black text-xs uppercase tracking-[0.2em] text-slate-900 dark:text-white mb-6">Platform</h4>
             <ul className="space-y-4 text-sm text-slate-500 font-bold">
-              <li><Link to="/services" className="hover:text-sky-600">Services</Link></li>
-              <li><Link to="/register" className="hover:text-sky-600">Register</Link></li>
-              <li><Link to="/login" className="hover:text-sky-600">Sign In</Link></li>
+              <li><Link to="/services" className="hover:text-amber-600">Services</Link></li>
+              <li><Link to="/register" className="hover:text-amber-600">Register</Link></li>
+              <li><Link to="/login" className="hover:text-amber-600">Sign In</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-black text-xs uppercase tracking-[0.2em] text-slate-900 dark:text-white mb-6">Company</h4>
             <ul className="space-y-4 text-sm text-slate-500 font-bold">
-              <li><Link to="/about" className="hover:text-sky-600">About Us</Link></li>
-              <li><Link to="/contact" className="hover:text-sky-600">Contact</Link></li>
-              <li><Link to="/privacy" className="hover:text-sky-600">Privacy Policy</Link></li>
+              <li><Link to="/about" className="hover:text-amber-600">About Us</Link></li>
+              <li><Link to="/contact" className="hover:text-amber-600">Contact</Link></li>
+              <li><Link to="/privacy" className="hover:text-amber-600">Privacy Policy</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-black text-xs uppercase tracking-[0.2em] text-slate-900 dark:text-white mb-6">Support</h4>
             <ul className="space-y-4 text-sm text-slate-500 font-bold">
-              <li><a href="#" className="hover:text-sky-600">Help Center</a></li>
-              <li><a href="#" className="hover:text-sky-600">API Docs</a></li>
-              <li><a href="#" className="hover:text-sky-600">Status</a></li>
+              <li><a href="#" className="hover:text-amber-600">Help Center</a></li>
+              <li><a href="#" className="hover:text-amber-600">API Docs</a></li>
+              <li><a href="#" className="hover:text-amber-600">Status</a></li>
             </ul>
           </div>
         </div>

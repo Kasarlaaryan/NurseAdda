@@ -51,8 +51,12 @@ export const InvoicesPage: React.FC = () => {
     return matchesSearch;
   });
 
-  const handleDownloadPdf = (id: number) => {
-    window.open(invoiceService.getPdfUrl(id), '_blank');
+  const handleDownloadPdf = async (id: number) => {
+    try {
+      await invoiceService.downloadPdf(id);
+    } catch {
+      showToast('error', 'Download Failed', 'Could not download the invoice PDF.');
+    }
   };
 
   return (
@@ -67,7 +71,7 @@ export const InvoicesPage: React.FC = () => {
 
       {/* Financial Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-l-4 border-l-sky-500">
+        <Card className="border-l-4 border-l-amber-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -76,7 +80,7 @@ export const InvoicesPage: React.FC = () => {
                   ${(summary?.totalBilled || 0).toLocaleString()}
                 </h3>
               </div>
-              <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-500/10 text-sky-600">
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600">
                 <DollarSign className="w-6 h-6" />
               </div>
             </div>
@@ -122,7 +126,7 @@ export const InvoicesPage: React.FC = () => {
           <input
             type="text"
             placeholder="Search by staff name or designation..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -171,7 +175,7 @@ export const InvoicesPage: React.FC = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <p className="font-extrabold text-sky-600 dark:text-sky-400">₹{inv.totalAmount.toLocaleString()}</p>
+                      <p className="font-extrabold text-amber-600 dark:text-amber-400">₹{inv.totalAmount.toLocaleString()}</p>
                       <p className="text-[11px] text-slate-400">Rate: ₹{inv.clientHourlyRate}/hr</p>
                     </TableCell>
                     <TableCell>
@@ -238,7 +242,7 @@ export const InvoicesPage: React.FC = () => {
           <div className="p-6 space-y-4 text-slate-900 dark:text-slate-100">
             <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
-                <h2 className="text-2xl font-black text-sky-600">NurseAdda<span className="text-slate-400">WFM</span></h2>
+                <h2 className="text-2xl font-black text-amber-600">NurseAdda<span className="text-slate-400">WFM</span></h2>
                 <p className="text-xs text-slate-500 font-medium">Enterprise Healthcare Staffing</p>
               </div>
               <div className="text-right">
@@ -262,21 +266,32 @@ export const InvoicesPage: React.FC = () => {
             </div>
 
             <div className="flex justify-end pt-4">
-              <div className="w-72 space-y-2.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                <div className="flex justify-between text-xs">
-                  <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Base ({pdfInvoice.baseHours}h × ₹{pdfInvoice.clientHourlyRate}):</span>
-                  <span className="font-black">₹{pdfInvoice.baseAmount.toLocaleString()}</span>
-                </div>
-                {pdfInvoice.overtimeHours > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Overtime ({pdfInvoice.overtimeHours}h):</span>
-                    <span className="font-black">₹{pdfInvoice.overtimeAmount.toLocaleString()}</span>
+              <div className="w-72 space-y-2.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Base ({pdfInvoice.baseHours}h × ₹{pdfInvoice.clientHourlyRate}):</span>
+                    <span className="font-black">₹{pdfInvoice.baseAmount.toLocaleString()}</span>
                   </div>
-                )}
-                <div className="pt-2.5 mt-2.5 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                  <span className="font-black text-[10px] uppercase tracking-[0.2em] text-sky-600">Total Amount</span>
-                  <span className="text-xl font-black text-sky-600">₹{pdfInvoice.totalAmount.toLocaleString()}</span>
-                </div>
+                  {pdfInvoice.overtimeHours > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Overtime ({pdfInvoice.overtimeHours}h):</span>
+                      <span className="font-black">₹{pdfInvoice.overtimeAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">Subtotal:</span>
+                    <span className="font-black">₹{(pdfInvoice.subtotal || pdfInvoice.baseAmount + pdfInvoice.overtimeAmount).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">GST (18%):</span>
+                    <span className="font-black">₹{(pdfInvoice.gstAmount || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="pt-2.5 mt-2.5 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                    <span className="font-black text-[10px] uppercase tracking-[0.2em] text-amber-600">Total (incl. GST)</span>
+                    <span className="text-xl font-black text-amber-600">₹{pdfInvoice.totalAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-700 text-center">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">GSTIN: 36FQNPS3757Q1ZK</p>
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Issued by: viewads</p>
+                  </div>
               </div>
             </div>
           </div>

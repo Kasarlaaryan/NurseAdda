@@ -11,6 +11,9 @@ export interface InvoiceResponse {
   clientHourlyRate: number;
   baseAmount: number;
   overtimeAmount: number;
+  subtotal: number;
+  gstRate: number;
+  gstAmount: number;
   totalAmount: number;
   status: string;
   notes: string;
@@ -33,6 +36,11 @@ export interface PaymentResponse {
   razorpayPaymentId: string;
   notes: string;
   createdAt: string;
+  refunded: boolean;
+  refundAmount: number;
+  refundPercentage: number;
+  razorpayRefundId: string;
+  refundedAt: string;
 }
 
 export interface RateConfigResponse {
@@ -86,8 +94,19 @@ export const invoiceService = {
     return response.data;
   },
 
-  getPdfUrl: (id: number): string => {
-    return `/api/invoices/${id}/pdf`;
+  downloadPdf: async (id: number): Promise<void> => {
+    const response = await apiClient.get(`/invoices/${id}/pdf`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `invoice-${String(id).padStart(6, '0')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   },
 };
 

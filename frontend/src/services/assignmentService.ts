@@ -10,6 +10,7 @@ export interface AssignmentResponse {
   staffingRequestId: number;
   designation: string;
   location: string;
+  locationLink: string;
   shift: string;
   assignedByName: string;
   status: string;
@@ -19,6 +20,10 @@ export interface AssignmentResponse {
   acceptedAt: string;
   completedAt: string;
   createdAt: string;
+  checkInOtp?: string;
+  checkInOtpPending?: boolean;
+  checkOutOtp?: string;
+  checkOutOtpPending?: boolean;
 }
 
 export interface StaffingRequestResponse {
@@ -26,10 +31,13 @@ export interface StaffingRequestResponse {
   clientName: string;
   designation: string;
   location: string;
+  locationLink: string;
   requestType: string;
   shift: string;
   startDate: string;
   endDate: string;
+  startTime: string;
+  endTime: string;
   numberOfStaff: number;
   requiredSkills: string;
   status: string;
@@ -38,8 +46,15 @@ export interface StaffingRequestResponse {
   hoursRemaining: number;
   minutesRemaining: number;
   estimatedTotal: number;
+  hourlyBillingRate: number;
+  hourlyPayRate: number;
   advanceAmount: number;
   advancePaid: boolean;
+  refunded: boolean;
+  refundAmount: number;
+  refundPercentage: number;
+  razorpayRefundId: string;
+  refundedAt: string;
   createdAt: string;
 }
 
@@ -66,12 +81,17 @@ export const staffingRequestService = {
   create: async (data: {
     designation: string;
     location: string;
+    locationLink?: string;
     requestType: 'ON_CALL' | 'MONTHLY';
     shift: string;
     startDate: string;
     endDate: string;
+    startTime: string;
+    endTime: string;
     numberOfStaff: number;
     requiredSkills: string;
+    hourlyBillingRate?: number;
+    hourlyPayRate?: number;
   }): Promise<StaffingRequestResponse> => {
     const response = await apiClient.post('/staffing-requests', data);
     return response.data;
@@ -105,6 +125,11 @@ export const staffingRequestService = {
     const response = await apiClient.get(`/staffing-requests/status/${status}`, {
       params: { page, size },
     });
+    return response.data;
+  },
+
+  cancel: async (id: number): Promise<StaffingRequestResponse> => {
+    const response = await apiClient.post(`/staffing-requests/${id}/cancel`);
     return response.data;
   },
 };

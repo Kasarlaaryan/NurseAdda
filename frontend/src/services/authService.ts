@@ -32,9 +32,14 @@ export interface StaffProfileResponse {
   phone: string;
   staffCategory: string;
   aadharCardNumber: string;
+  location?: string;
   licenseValidityDate: string;
   licenseRenewalDate: string;
   verified: boolean;
+  /** EXPIRED, EXPIRING_SOON, VALID, or UNKNOWN */
+  licenseStatus?: string;
+  /** Reason provided by admin when verification was removed */
+  rejectionReason?: string;
   stateBoardCertificatePath: string;
   educationalDocumentPaths: string[];
   photoPaths: string[];
@@ -57,12 +62,11 @@ export const authService = {
 
   /** Register a new staff member */
   registerStaff: async (data: {
-    firstName: string;
-    lastName: string;
+    fullName: string;
     email: string;
-    mobileNumber: string;
+    phone: string;
+    staffCategory: string;
     password: string;
-    confirmPassword: string;
   }): Promise<string> => {
     const response = await apiClient.post<string>('/auth/register-staff', data);
     return response.data;
@@ -181,6 +185,60 @@ export const authService = {
   ): Promise<{ content: UserResponse[]; totalElements: number; totalPages: number }> => {
     const response = await apiClient.get('/auth/admin/users', {
       params: { page, size },
+    });
+    return response.data;
+  },
+
+  /** Register a new admin (super admin only) */
+  registerAdmin: async (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    password: string;
+    confirmPassword: string;
+    adminType: 'ADMIN' | 'SUPER_ADMIN';
+  }): Promise<string> => {
+    const response = await apiClient.post<string>('/auth/register-admin', data);
+    return response.data;
+  },
+
+  /** Update staff profile with document uploads */
+  updateStaffProfile: async (data: {
+    aadharCardNumber?: string;
+    location?: string;
+    licenseValidityDate?: string;
+    licenseRenewalDate?: string;
+    stateBoardCertificate?: File;
+    educationalDocuments?: File[];
+    photos?: File[];
+  }): Promise<StaffProfileResponse> => {
+    const formData = new FormData();
+
+    const profilePayload: Record<string, string> = {};
+    if (data.aadharCardNumber) profilePayload.aadharCardNumber = data.aadharCardNumber;
+    if (data.location) profilePayload.location = data.location;
+    if (data.licenseValidityDate) profilePayload.licenseValidityDate = data.licenseValidityDate;
+    if (data.licenseRenewalDate) profilePayload.licenseRenewalDate = data.licenseRenewalDate;
+
+    formData.append('profile', new Blob([JSON.stringify(profilePayload)], { type: 'application/json' }));
+
+    if (data.stateBoardCertificate) {
+      formData.append('stateBoardCertificate', data.stateBoardCertificate);
+    }
+    if (data.educationalDocuments) {
+      data.educationalDocuments.forEach((file) => {
+        formData.append('educationalDocuments', file);
+      });
+    }
+    if (data.photos) {
+      data.photos.forEach((file) => {
+        formData.append('photos', file);
+      });
+    }
+
+    const response = await apiClient.put<StaffProfileResponse>('/auth/staff-profile', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },

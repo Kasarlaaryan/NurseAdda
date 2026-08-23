@@ -53,24 +53,24 @@ export const Footer: React.FC = () => {
           {/* Brand Column */}
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-sky-600 text-white font-black text-sm flex items-center justify-center shadow-lg shadow-sky-600/20">
+              <div className="w-8 h-8 rounded-xl bg-amber-600 text-white font-black text-sm flex items-center justify-center shadow-lg shadow-amber-600/20">
                 N
               </div>
               <span className="font-black text-lg tracking-tight text-slate-900 dark:text-white">
-                NurseAdda<span className="text-sky-500">WFM</span>
+                NurseAdda<span className="text-amber-500">WFM</span>
               </span>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs">
               The next-generation Workforce Management platform designed specifically for modern healthcare staffing and shift optimization.
             </p>
             <div className="flex items-center gap-4">
-              <a href="#" className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-sky-500 transition-colors border border-slate-100 dark:border-slate-800">
+              <a href="#" className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-amber-500 transition-colors border border-slate-100 dark:border-slate-800">
                 <Twitter className="w-4 h-4" />
               </a>
-              <a href="#" className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-sky-500 transition-colors border border-slate-100 dark:border-slate-800">
+              <a href="#" className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-amber-500 transition-colors border border-slate-100 dark:border-slate-800">
                 <Linkedin className="w-4 h-4" />
               </a>
-              <a href="#" className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-sky-500 transition-colors border border-slate-100 dark:border-slate-800">
+              <a href="#" className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-400 hover:text-amber-500 transition-colors border border-slate-100 dark:border-slate-800">
                 <Github className="w-4 h-4" />
               </a>
             </div>
@@ -82,7 +82,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-3">
               {platformLinks.map((link) => (
                 <li key={link.label}>
-                  <Link to={link.href} className="text-sm text-slate-500 hover:text-sky-500 transition-colors flex items-center gap-2">
+                  <Link to={link.href} className="text-sm text-slate-500 hover:text-amber-500 transition-colors flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {link.label}
                   </Link>
@@ -96,7 +96,7 @@ export const Footer: React.FC = () => {
             <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Contact Us</h4>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500 mt-0.5">
+                <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 mt-0.5">
                   <Mail className="w-3.5 h-3.5" />
                 </div>
                 <div>
@@ -105,7 +105,7 @@ export const Footer: React.FC = () => {
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500 mt-0.5">
+                <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 mt-0.5">
                   <Phone className="w-3.5 h-3.5" />
                 </div>
                 <div>
@@ -130,7 +130,7 @@ export const Footer: React.FC = () => {
             </div>
             <div className="w-px h-3 bg-slate-200 dark:bg-slate-800" />
             <div className="flex items-center gap-2">
-              <Shield className="w-3 h-3 text-sky-500" />
+              <Shield className="w-3 h-3 text-amber-500" />
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">SSL Encrypted</span>
             </div>
           </div>
